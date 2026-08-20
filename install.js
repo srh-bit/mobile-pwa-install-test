@@ -35,7 +35,7 @@ function setInstalledState(message = 'Test shortcut installed.') {
   openButton.textContent = 'Continue to myHRFH';
   openButton.href = MYHRFH_URL;
   platformContent.innerHTML = `
-    <p><strong>${message}</strong><br>For this GitHub Pages proof, use the button below to continue to myhrfh.com.</p>
+    <p><strong>${message}</strong><br>The shortcut is installed. Launch it from your Home Screen to open myhrfh.com directly.</p>
   `;
 }
 
@@ -78,7 +78,7 @@ function renderInitialState() {
   openButton.href = MYHRFH_URL;
 
   if (isStandalone()) {
-    setInstalledState('The test shortcut is running from your Home Screen.');
+    window.location.replace(MYHRFH_URL);
     return;
   }
 
@@ -127,7 +127,7 @@ installButton.addEventListener('click', async () => {
 
 window.addEventListener('appinstalled', () => {
   setInstalledState('The test shortcut was installed successfully.');
-  setStatus('Installed. Launch it from your Home Screen to verify standalone mode.');
+  setStatus('Installed. Launch it from your Home Screen to open myHRFH directly.');
 });
 
 window.addEventListener('load', () => {
