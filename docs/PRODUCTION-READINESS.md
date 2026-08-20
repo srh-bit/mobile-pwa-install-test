@@ -39,23 +39,25 @@ The generic Web Share API (`navigator.share()`) is deliberately not used as an i
 
 ### iOS action symbols
 
-Instructional icons must match the controls users actually see on iOS and must be rendered as vector artwork rather than placeholder Unicode characters:
+Instructional icons must preserve the geometry of the controls users actually see on iOS and must be rendered as vector artwork rather than placeholder Unicode characters. Their surrounding card, color, glow, and spacing may follow the HRFH page design system so the assistant remains visually consistent with the installer.
 
-- **Share** — outlined square with an upward arrow, matching the familiar iOS `square.and.arrow.up` visual.
-- **More** — horizontal ellipsis / three-dot control.
+- **Share** — outlined square with an upward arrow, matching the familiar iOS share control.
+- **More** — outlined circle containing three horizontal dots, matching the current circular iOS More control used as an alternate entry point to sharing.
 - **Add to Home Screen** — outlined rounded square containing a plus.
+
+The icon silhouettes and internal geometry remain iOS-faithful; the presentation uses the HRFH purple/orange palette and subtle branded depth instead of recreating Apple's blue/gray browser chrome.
 
 Do not recreate unrelated Safari/Chrome toolbar controls. In particular, do not show placeholder back arrows, tab-overview squares, fake browser buttons, or approximate text glyphs when they are not required for installation.
 
 ### iPhone Safari
 
-Safari may expose **Share** directly or may place sharing behind **More (…)** depending on iOS/Safari layout and version. Web content cannot reliably inspect that toolbar preference.
+Safari may expose **Share** directly or may place sharing behind the circular **More** control depending on iOS/Safari layout and version. Web content cannot reliably inspect that toolbar preference.
 
 The assistant therefore gives one direct instruction without asking a question:
 
-**Tap Share. If Share is not visible, tap More (…) then Share.**
+**Tap Share, or More if Share isn't shown. Then choose Share.**
 
-The visual guide shows the real-style Share and More symbols and may indicate the lower Safari control region, but it must not claim a pixel-perfect position for browser chrome outside the webpage.
+The visual guide shows both supported first-step symbols and may indicate the lower Safari control region, but it must not claim a pixel-perfect position for browser chrome outside the webpage.
 
 After the Share sheet opens:
 
@@ -98,7 +100,8 @@ Use conservative Share → Add to Home Screen guidance. Do not claim an exact to
 - Ambiguous layouts use an accurate action symbol and written instruction rather than guessed pixel coordinates.
 - No toolbar-layout questionnaire or calibration storage is permitted in the final flow.
 - Only installation-relevant controls are illustrated.
-- Vector symbols must remain crisp at Retina scaling and zoom.
+- Share, circled More, and Add-to-Home-Screen vector geometry must remain crisp and recognizable at Retina scaling and zoom.
+- HRFH color and surface styling may wrap those symbols without changing their iOS-recognizable shapes.
 - Coachmarks use safe-area insets for notches, Dynamic Island, and Home Indicator spacing.
 - Orientation and viewport changes recalculate the profile.
 - `prefers-reduced-motion` disables nonessential pulse/transition behavior.
@@ -112,7 +115,7 @@ Use conservative Share → Add to Home Screen guidance. Do not claim an exact to
 | iPhone Chrome portrait | Share beside address bar → Add to Home Screen; no exact edge claim | No installed-only actions in ordinary browser tabs unless state is positively confirmed |
 | iPhone Chrome landscape | top-right Share cue → Add to Home Screen | Same conservative rule |
 | iPad Chrome | top-right Share cue → Add to Home Screen | Same conservative rule |
-| iPhone Safari | Share; if absent More (…) → Share → Add to Home Screen → Open as Web App → Add | Same conservative rule |
+| iPhone Safari | Share; if absent circled More → Share → Add to Home Screen → Open as Web App → Add | Same conservative rule |
 | iPad Safari | top-right Share cue → Add to Home Screen → Open as Web App → Add | Same conservative rule |
 | Windows Chrome | installed-related-app/receipt; otherwise native prompt | When confirmed: Open, Restore shortcut, Uninstall guidance |
 | Windows Edge | installed-related-app/receipt; otherwise native prompt | When confirmed: Open, Restore shortcut, Uninstall guidance |
@@ -134,10 +137,10 @@ For production, move this behavior to a deliberately scoped same-origin route on
 
 The release worker:
 
-- uses cache identity `myhrfh-installer-v4`;
+- uses cache identity `myhrfh-installer-v5`;
 - preserves `desktop-installed-state-v2`;
 - declares `ios-current-browser-v1`;
-- declares `ios-final-guidance-v1`;
+- declares `ios-final-guidance-v2`;
 - caches the required final iOS guidance stylesheet/script;
 - intercepts only same-origin GET requests;
 - never proxies or caches cross-origin `myhrfh.com` in staging;
@@ -212,7 +215,7 @@ node --check service-worker.js
 node --test tests/*.mjs
 ```
 
-Coverage includes manifest/scope, transparent icons, pre-paint launch, Android/iOS/desktop detection, final direct iOS guidance, accurate Share/More/Add-to-Home-Screen symbols, Safari Share/More and Open-as-Web-App recovery, relationship-sensitive installed-state triage, install-receipt continuity, condition-gated management actions, service-worker scope/freshness, accessibility hooks, and production/security documentation.
+Coverage includes manifest/scope, transparent icons, pre-paint launch, Android/iOS/desktop detection, final direct iOS guidance, accurate Share/circled-More/Add-to-Home-Screen symbols, Safari Share/More and Open-as-Web-App recovery, relationship-sensitive installed-state triage, install-receipt continuity, condition-gated management actions, service-worker scope/freshness, accessibility hooks, and production/security documentation.
 
 ## Production deployment checklist
 
@@ -227,10 +230,10 @@ Before publishing the official HRFH install URL:
 7. Verify standalone/appinstalled writes the receipt; normal browser visit does not; later `beforeinstallprompt` clears stale receipt evidence.
 8. Test iPhone Chrome portrait with the address bar at the top and bottom; verify the same direct Share guidance remains accurate without asking the user a question.
 9. Test iPhone Chrome landscape and iPad Chrome with the top-right Share cue.
-10. Test iPhone Safari layouts with Share directly visible and with More (…) required; verify both are covered simultaneously by the direct guidance.
+10. Test iPhone Safari layouts with Share directly visible and with the circled More control required; verify both are covered simultaneously by the direct guidance.
 11. Test iPad Safari top-right Share guidance.
 12. Test Safari **Open as Web App** and **Edit Actions → Add to Home Screen** recovery.
-13. Confirm Share, More, and Add-to-Home-Screen vector symbols visually match current iOS controls at 100%, 200% zoom, and Retina device scaling.
+13. Confirm Share, circled More, and Add-to-Home-Screen vector shapes visually match current iOS controls at 100%, 200% zoom, and Retina device scaling while HRFH colors/surfaces remain consistent with the installer UI.
 14. Rotate portrait/landscape and confirm guidance recalculates without duplicate UI.
 15. Test Android full-PWA and browser-badged shortcut fallback.
 16. Test Windows Chrome/Edge before and after deleting only the desktop shortcut.
