@@ -69,9 +69,10 @@ test('Android installed state retains intentional reinstall recovery', async () 
   assert.match(js, /clearInstallReceipt\(\)/);
 });
 
-test('PWA-only Android recovery refreshes the cached shell', async () => {
+test('PWA-only Android UI cleanup refreshes the cached shell', async () => {
   const worker = await read('service-worker.js');
   assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v8['"]/);
-  assert.match(worker, /ANDROID_INSTALL_REVISION\s*=\s*['"]android-pwa-recovery-v3['"]/);
+  assert.match(worker, /ANDROID_INSTALL_REVISION\s*=\s*['"]android-pwa-recovery-v2['"]/);
+  assert.match(worker, /ANDROID_UI_REVISION\s*=\s*['"]android-installed-ui-v1['"]/);
   assert.doesNotMatch(worker, /ANDROID_NATIVE_MANAGEMENT_REVISION|android-native-bridge/);
 });
