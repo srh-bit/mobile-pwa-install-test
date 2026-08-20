@@ -33,11 +33,13 @@ test('iOS guidance uses a branded modal and direct iOS-style action symbols', as
   assert.match(guidanceJs, /function shareSymbol\(/);
   assert.match(guidanceJs, /function moreSymbol\(/);
   assert.match(guidanceJs, /function addHomeSymbol\(/);
+  assert.match(guidanceJs, /<circle\s+cx="12"\s+cy="12"\s+r="10"\s+fill="none"/i);
   assert.doesNotMatch(guidanceJs, /sessionStorage|needsCalibration|buildCalibration/i);
 
   assert.match(modalCss, /\.ios-install-modal/);
   assert.match(modalCss, /backdrop-filter:\s*blur/i);
   assert.match(finalCss, /\.ios-symbol-shell/);
+  assert.match(finalCss, /var\(--brand-purple\)/i);
   assert.match(finalCss, /env\(safe-area-inset-/i);
   assert.match(finalCss, /prefers-reduced-motion/i);
 });
@@ -85,11 +87,11 @@ test('public installer includes privacy and indexing safeguards without iOS cali
   assert.doesNotMatch(guidanceJs, /sessionStorage|localStorage/i);
 });
 
-test('service worker uses production navigation freshness and the v4 release cache identity', async () => {
+test('service worker uses production navigation freshness and the v5 release cache identity', async () => {
   const worker = await read('service-worker.js');
 
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v4['"]/);
-  assert.match(worker, /ios-final-guidance-v1/i);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v5['"]/);
+  assert.match(worker, /ios-final-guidance-v2/i);
   assert.match(worker, /production-readiness-v1/i);
   assert.match(worker, /request\.mode\s*===\s*['"]navigate['"]/);
   assert.match(worker, /fetch\(request\)[\s\S]*caches\.match\(request\)/s);
