@@ -152,11 +152,11 @@ test('desktop fallbacks distinguish Mac Safari and general desktop browsers', as
   assert.match(js, /this computer/i);
 });
 
-test('legacy installed entry still forwards to myHRFH', async () => {
+test('legacy installed entry records the install receipt before forwarding to myHRFH', async () => {
   const js = await read('install.js');
   assert.match(
     js,
-    /if\s*\(isStandalone\(\)\)\s*\{\s*window\.location\.replace\(MYHRFH_URL\);\s*return;\s*\}/s
+    /if\s*\(isStandalone\(\)\)\s*\{\s*writeInstallReceipt\(\);\s*window\.location\.replace\(MYHRFH_URL\);\s*return;\s*\}/s
   );
 });
 
