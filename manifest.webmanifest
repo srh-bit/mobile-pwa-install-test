@@ -10,16 +10,28 @@
   "prefer_related_applications": false,
   "icons": [
     {
+      "src": "https://hrforhealth.com/wp-content/uploads/2024/04/Logo-icon-1.png.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "https://hrforhealth.com/wp-content/uploads/2024/04/Logo-icon-1.png.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "https://hrforhealth.com/wp-content/uploads/2024/04/Logo-icon-1.png.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "maskable"
+    },
+    {
       "src": "./icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "./icons/icon-maskable-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
     },
     {
       "src": "./icons/icon-512.png",
