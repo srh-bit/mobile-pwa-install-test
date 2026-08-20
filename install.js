@@ -8,9 +8,12 @@ const statusMessage = document.getElementById('status-message');
 const pageTitle = document.getElementById('page-title');
 const introCopy = document.getElementById('intro-copy');
 const card = document.querySelector('.install-card');
+const iosInstallModal = document.getElementById('ios-install-modal');
+const iosModalDismiss = document.getElementById('ios-modal-dismiss');
 
 let deferredInstallPrompt = null;
 let installedStateDetected = false;
+let iosModalPreviousFocus = null;
 
 function userAgent() {
   return navigator.userAgent || '';
@@ -106,13 +109,40 @@ function applyEnvironmentCopy() {
   introCopy.textContent = 'Your HR for Health portal, ready from this computer.';
 }
 
+function showIOSInstallModal() {
+  if (!isIOSSafari() || isStandalone() || !iosInstallModal) {
+    return;
+  }
+
+  iosModalPreviousFocus = document.activeElement;
+  iosInstallModal.hidden = false;
+  document.body.classList.add('ios-modal-open');
+  requestAnimationFrame(() => iosInstallModal.classList.add('is-visible'));
+  iosModalDismiss?.focus({ preventScroll: true });
+}
+
+function hideIOSInstallModal() {
+  if (!iosInstallModal || iosInstallModal.hidden) {
+    return;
+  }
+
+  iosInstallModal.classList.remove('is-visible');
+  document.body.classList.remove('ios-modal-open');
+  iosInstallModal.hidden = true;
+
+  if (iosModalPreviousFocus instanceof HTMLElement) {
+    iosModalPreviousFocus.focus({ preventScroll: true });
+  }
+}
+
 function setInstalledState(message = 'HRFH web app installed.') {
   deferredInstallPrompt = null;
   installedStateDetected = true;
+  hideIOSInstallModal();
   installButton.hidden = true;
   card.classList.add('installed');
   openButton.textContent = 'Open HRFH web app';
-  openButton.href = './launch.html';
+  openButton.href = APP_LAUNCH_URL;
   const launchPlace = isMobileEnvironment() ? 'your home screen' : 'your apps';
   platformContent.innerHTML = `
     <p><strong>${message}</strong><br>Open it anytime from ${launchPlace}.</p>
@@ -120,9 +150,8 @@ function setInstalledState(message = 'HRFH web app installed.') {
 }
 
 function renderIOSInstructions() {
-  installButton.hidden = true;
-
   if (!isIOSSafari()) {
+    installButton.hidden = true;
     platformContent.innerHTML = `
       <p><strong>Open this page in Safari.</strong><br>Safari is required to add the HRFH web app to your home screen.</p>
     `;
@@ -130,20 +159,13 @@ function renderIOSInstructions() {
     return;
   }
 
+  installButton.hidden = false;
+  installButton.textContent = 'Show install steps';
   platformContent.innerHTML = `
-    <p class="platform-lead">Add the HRFH web app in two quick steps.</p>
-    <ol class="install-steps">
-      <li class="install-step">
-        <span class="step-number">1</span>
-        <span class="step-copy"><strong>Tap Share</strong><span>Use Safari's Share button.</span></span>
-      </li>
-      <li class="install-step">
-        <span class="step-number">2</span>
-        <span class="step-copy"><strong>Add to Home Screen</strong><span>Choose Add to Home Screen, then tap Add.</span></span>
-      </li>
-    </ol>
+    <p><strong>Ready to add.</strong><br>Follow the iPhone popup to add the HRFH web app to your home screen.</p>
   `;
   setStatus();
+  showIOSInstallModal();
 }
 
 function renderAndroidFallback() {
@@ -244,6 +266,15 @@ window.addEventListener('beforeinstallprompt', (event) => {
 });
 
 installButton.addEventListener('click', async () => {
+  if (isIOS()) {
+    if (isIOSSafari()) {
+      showIOSInstallModal();
+    } else {
+      renderIOSInstructions();
+    }
+    return;
+  }
+
   if (!deferredInstallPrompt) {
     renderFallback();
     return;
@@ -265,6 +296,20 @@ installButton.addEventListener('click', async () => {
     deferredInstallPrompt = null;
     installButton.disabled = false;
     installButton.hidden = true;
+  }
+});
+
+iosModalDismiss?.addEventListener('click', hideIOSInstallModal);
+
+iosInstallModal?.addEventListener('click', (event) => {
+  if (event.target === iosInstallModal) {
+    hideIOSInstallModal();
+  }
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && iosInstallModal && !iosInstallModal.hidden) {
+    hideIOSInstallModal();
   }
 });
 
