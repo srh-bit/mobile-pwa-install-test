@@ -46,6 +46,14 @@ test('managed Android manifest is fixed-origin and least privilege', async () =>
   assert.doesNotMatch(manifest, /QUERY_ALL_PACKAGES|REQUEST_INSTALL_PACKAGES|DELETE_PACKAGES|INSTALL_SHORTCUT/i);
 });
 
+test('app-side asset statement declares web ownership while website DAL owns use-as-origin trust', async () => {
+  const strings = await readOptional('android/app/src/main/res/values/strings.xml');
+  const websiteTemplate = await readOptional('android/assetlinks.production.template.json');
+  assert.match(strings, /delegate_permission\/common\.handle_all_urls/);
+  assert.doesNotMatch(strings, /delegate_permission\/common\.use_as_origin/);
+  assert.match(websiteTemplate, /delegate_permission\/common\.use_as_origin/);
+});
+
 test('managed Android CI pins Java and Gradle and compiles native code', async () => {
   const workflow = await read('.github/workflows/validate.yml');
   assert.match(workflow, /actions\/setup-java@/);
@@ -55,6 +63,16 @@ test('managed Android CI pins Java and Gradle and compiles native code', async (
   assert.match(workflow, /platforms;android-36/);
   assert.match(workflow, /build-tools;36\.0\.0/);
   assert.match(workflow, /gradle\s+-p\s+android\s+testDebugUnitTest\s+lintDebug\s+assembleDebug/);
+});
+
+test('Android CI retries the unchanged native gate only for Maven Central rate limiting', async () => {
+  const workflow = await read('.github/workflows/validate.yml');
+  const nativeGate = 'gradle -p android testDebugUnitTest lintDebug assembleDebug';
+  assert.equal((workflow.match(new RegExp(nativeGate, 'g')) ?? []).length, 2);
+  assert.match(workflow, /Too Many Requests/);
+  assert.match(workflow, /repo\\\.maven\\\.apache\\\.org\.\*429/);
+  assert.match(workflow, /retrying once with the same Android gate/i);
+  assert.match(workflow, /if\s*!\s*grep[\s\S]*exit 1/);
 });
 
 test('native Android code never uses hidden launcher or package-management APIs', async () => {
@@ -77,6 +95,14 @@ test('same-origin relationship revocation disables the native channel immediatel
   const bridge = await readOptional('android/app/src/main/java/com/hrforhealth/myhrfh/NativeManagementBridge.java');
   assert.match(bridge, /relationshipValidated\s*=\s*result/);
   assert.match(bridge, /if\s*\(\s*!result\s*\)\s*\{[\s\S]*?channelReady\s*=\s*false;[\s\S]*?channelRequested\s*=\s*false;/i);
+});
+
+test('TWA launch failure falls back to a normal Custom Tab instead of crashing', async () => {
+  const activity = await readOptional('android/app/src/main/java/com/hrforhealth/myhrfh/ManagedTwaActivity.java');
+  const trusted = activity.match(/private void launchTrusted\([^)]*\)\s*\{([\s\S]*?)\n\s*\}/)?.[1] ?? '';
+  assert.match(trusted, /catch\s*\(RuntimeException\s+exception\)/);
+  assert.match(trusted, /launchFallback\(\)/);
+  assert.match(activity, /buildCustomTabsIntent\(\)/);
 });
 
 test('production Digital Asset Links template is explicit and non-deployable until release inputs exist', async () => {

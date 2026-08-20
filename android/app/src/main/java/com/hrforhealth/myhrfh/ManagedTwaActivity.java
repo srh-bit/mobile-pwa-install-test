@@ -73,20 +73,30 @@ public final class ManagedTwaActivity extends Activity {
         if (launched) {
             return;
         }
-        launched = true;
-        new TrustedWebActivityIntentBuilder(LAUNCH_URI)
-                .build(session)
-                .launchTrustedWebActivity(this);
+
+        try {
+            new TrustedWebActivityIntentBuilder(LAUNCH_URI)
+                    .build(session)
+                    .launchTrustedWebActivity(this);
+            launched = true;
+        } catch (RuntimeException exception) {
+            launchFallback();
+        }
     }
 
     private void launchFallback() {
         if (launched) {
             return;
         }
-        launched = true;
-        new TrustedWebActivityIntentBuilder(LAUNCH_URI)
-                .buildCustomTabsIntent()
-                .launchUrl(this, LAUNCH_URI);
+
+        try {
+            new TrustedWebActivityIntentBuilder(LAUNCH_URI)
+                    .buildCustomTabsIntent()
+                    .launchUrl(this, LAUNCH_URI);
+            launched = true;
+        } catch (RuntimeException exception) {
+            finish();
+        }
     }
 
     @Override

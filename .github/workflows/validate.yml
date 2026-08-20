@@ -46,4 +46,18 @@ jobs:
       - name: Run repository validation
         run: node --test tests/*.mjs
       - name: Build and lint managed Android package
-        run: gradle -p android testDebugUnitTest lintDebug assembleDebug
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOG_FILE="$(mktemp)"
+          if gradle -p android testDebugUnitTest lintDebug assembleDebug 2>&1 | tee "$LOG_FILE"; then
+            exit 0
+          fi
+
+          if ! grep -Eqi '429|Too Many Requests|repo\.maven\.apache\.org.*429' "$LOG_FILE"; then
+            exit 1
+          fi
+
+          echo "Maven Central rate limited dependency resolution; retrying once with the same Android gate."
+          sleep 10
+          gradle -p android testDebugUnitTest lintDebug assembleDebug
