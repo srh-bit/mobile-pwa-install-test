@@ -25,7 +25,7 @@ test('final iOS assistant has no calibration questions or browser-switch copy', 
   assert.doesNotMatch(html, /▢/);
 });
 
-test('final iOS guide uses vector iOS-style Share, More, and Add to Home Screen symbols only', async () => {
+test('final iOS guide uses vector iOS-style Share, circled More, and Add to Home Screen symbols only', async () => {
   const js = await read('ios-guidance-v2.js');
 
   assert.match(js, /function shareSymbol\(/i);
@@ -36,24 +36,30 @@ test('final iOS guide uses vector iOS-style Share, More, and Add to Home Screen 
   assert.match(js, /ios-more-symbol/i);
   assert.match(js, /ios-add-home-symbol/i);
 
+  const moreStart = js.indexOf('function moreSymbol');
+  const moreEnd = js.indexOf('function addHomeSymbol');
+  const moreMarkup = js.slice(moreStart, moreEnd);
+  assert.match(moreMarkup, /<circle\s+cx="12"\s+cy="12"\s+r="(?:9\.5|10|10\.5)"[^>]*fill="none"/i);
+  assert.equal((moreMarkup.match(/fill="currentColor"/g) || []).length, 3);
+
   assert.doesNotMatch(js, />\s*↑\s*</);
   assert.doesNotMatch(js, /▢/);
   assert.doesNotMatch(js, />\s*‹\s*</);
 });
 
-test('iPhone guidance stays direct while covering Share and More without asking questions', async () => {
+test('iPhone guidance stays direct while covering Share and circled More without asking questions', async () => {
   const js = await read('ios-guidance-v2.js');
 
-  assert.match(js, /Tap Share/i);
-  assert.match(js, /More \(…\).*Share|More.*Share/i);
+  assert.match(js, /Tap Share, or More if Share (?:isn't|isn’t) shown\./i);
+  assert.match(js, /Then choose Share\./i);
   assert.match(js, /Add to Home Screen/i);
   assert.match(js, /Open as Web App/i);
   assert.doesNotMatch(js, /sessionStorage/i);
   assert.doesNotMatch(js, /navigator\.share\s*\(/i);
 });
 
-test('release cache rotates for final iOS guidance', async () => {
+test('release cache rotates for circled iOS More guidance', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /myhrfh-installer-v4/i);
-  assert.match(worker, /ios-final-guidance-v1/i);
+  assert.match(worker, /myhrfh-installer-v5/i);
+  assert.match(worker, /ios-final-guidance-v2/i);
 });
