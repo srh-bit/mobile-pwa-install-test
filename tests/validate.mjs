@@ -10,8 +10,8 @@ async function readManifest() {
 
 test('manifest defines a same-origin standalone myHRFH app with HRFH theme', async () => {
   const manifest = await readManifest();
-  assert.equal(manifest.name, 'myHRFH Shortcut Test');
-  assert.equal(manifest.short_name, 'myHRFH Test');
+  assert.equal(manifest.name, 'myHRFH');
+  assert.equal(manifest.short_name, 'myHRFH');
   assert.equal(manifest.start_url, './');
   assert.equal(manifest.scope, './');
   assert.equal(manifest.display, 'standalone');
