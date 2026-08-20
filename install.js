@@ -1,4 +1,5 @@
 const MYHRFH_URL = 'https://myhrfh.com';
+const APP_LAUNCH_URL = './launch.html';
 
 const installButton = document.getElementById('install-button');
 const openButton = document.getElementById('open-button');
@@ -9,6 +10,7 @@ const introCopy = document.getElementById('intro-copy');
 const card = document.querySelector('.install-card');
 
 let deferredInstallPrompt = null;
+let installedStateDetected = false;
 
 function userAgent() {
   return navigator.userAgent || '';
@@ -68,6 +70,27 @@ function isMobileEnvironment() {
   return current === 'ios' || current === 'android';
 }
 
+async function isPWAInstalled() {
+  if (typeof navigator.getInstalledRelatedApps !== 'function') {
+    return false;
+  }
+
+  try {
+    const relatedApps = await navigator.getInstalledRelatedApps();
+    return relatedApps.some((app) => {
+      if (app.platform !== 'webapp') {
+        return false;
+      }
+
+      const manifestMatches = typeof app.url === 'string' && app.url.endsWith('/manifest.webmanifest');
+      const appIdMatches = app.id === new URL('./', window.location.href).href;
+      return manifestMatches || appIdMatches;
+    });
+  } catch {
+    return false;
+  }
+}
+
 function setStatus(message = '') {
   statusMessage.textContent = message;
 }
@@ -85,10 +108,11 @@ function applyEnvironmentCopy() {
 
 function setInstalledState(message = 'HRFH web app installed.') {
   deferredInstallPrompt = null;
+  installedStateDetected = true;
   installButton.hidden = true;
   card.classList.add('installed');
-  openButton.textContent = 'Open myHRFH';
-  openButton.href = MYHRFH_URL;
+  openButton.textContent = 'Open HRFH web app';
+  openButton.href = './launch.html';
   const launchPlace = isMobileEnvironment() ? 'your home screen' : 'your apps';
   platformContent.innerHTML = `
     <p><strong>${message}</strong><br>Open it anytime from ${launchPlace}.</p>
@@ -178,7 +202,7 @@ function renderInstallReady() {
   setStatus();
 }
 
-function renderInitialState() {
+async function renderInitialState() {
   openButton.href = MYHRFH_URL;
 
   if (isStandalone()) {
@@ -193,11 +217,27 @@ function renderInitialState() {
     return;
   }
 
+  if (await isPWAInstalled()) {
+    setInstalledState('HRFH web app is already installed.');
+    setStatus();
+    return;
+  }
+
+  if (deferredInstallPrompt) {
+    renderInstallReady();
+    return;
+  }
+
   renderFallback();
 }
 
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
+
+  if (installedStateDetected) {
+    return;
+  }
+
   deferredInstallPrompt = event;
   applyEnvironmentCopy();
   renderInstallReady();
@@ -241,4 +281,4 @@ window.addEventListener('load', () => {
   }
 });
 
-renderInitialState();
+void renderInitialState();
