@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+const LOGO_URL = 'https://hrforhealth.com/wp-content/uploads/2024/04/Logo-icon-1.png.webp';
 
 async function readManifest() {
   return JSON.parse(await read('manifest.webmanifest'));
@@ -18,18 +19,29 @@ test('manifest defines a same-origin standalone myHRFH test app', async () => {
   assert.equal(manifest.prefer_related_applications, false);
 });
 
-test('manifest declares 192 and 512 PNG icons and maskable coverage', async () => {
+test('manifest uses the HR for Health logo for shortcut branding with installable PNG fallbacks', async () => {
   const manifest = await readManifest();
   const icons = manifest.icons ?? [];
+  assert.ok(
+    icons.some((icon) => icon.src === LOGO_URL && icon.type === 'image/webp'),
+    'HR for Health WebP logo must be the primary shortcut artwork'
+  );
   assert.ok(icons.some((icon) => icon.sizes === '192x192' && icon.type === 'image/png'));
   assert.ok(icons.some((icon) => icon.sizes === '512x512' && icon.type === 'image/png'));
   assert.ok(icons.some((icon) => icon.purpose?.includes('maskable')));
 });
 
-test('page links all install resources and presents myHRFH destination', async () => {
+test('page links all install resources and uses the HR for Health logo for iOS and preview branding', async () => {
   const html = await read('index.html');
   assert.match(html, /rel=["']manifest["'][^>]+href=["']\.\/manifest\.webmanifest["']/i);
-  assert.match(html, /rel=["']apple-touch-icon["'][^>]+href=["']\.\/icons\/icon-192\.png["']/i);
+  assert.ok(
+    html.includes(`<link rel="apple-touch-icon" href="${LOGO_URL}">`),
+    'Apple touch icon must use the supplied HR for Health logo'
+  );
+  assert.ok(
+    html.includes(`src="${LOGO_URL}"`),
+    'Visible shortcut preview must use the supplied HR for Health logo'
+  );
   assert.match(html, /href=["']\.\/styles\.css["']/i);
   assert.match(html, /src=["']\.\/install\.js["']/i);
   assert.match(html, /Add myHRFH to your phone/i);
