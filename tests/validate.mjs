@@ -74,7 +74,7 @@ test('page uses concise sentence-case HRFH web app language', async () => {
   assert.match(html, />HRFH web app</i);
   assert.match(html, /Add the HRFH web app/i);
   assert.match(html, /Your HR for Health portal, one tap from your home screen\./i);
-  assert.match(html, /<button[^>]+id=["']install-button["'][^>]*>\s*Add HRFH web app\s*<\/button>/is);
+  assert.match(html, /<button[^>]+id=["']install-button["'][^>]*>\s*Install HRFH web app\s*<\/button>/is);
   assert.match(html, /<a[^>]+id=["']open-button["'][^>]*>\s*Open myHRFH\s*<\/a>/is);
   assert.match(html, /Opens <strong>myhrfh\.com<\/strong>/i);
   assert.doesNotMatch(html, /No app store|no download|no long setup/i);
@@ -94,16 +94,44 @@ test('styles preserve HRFH palette with subtle depth and gloss without forced up
   assert.doesNotMatch(css, /text-transform:\s*uppercase/i);
 });
 
-test('install controller uses concise HRFH web app wording for Android and iOS', async () => {
+test('install controller detects iOS, Android, Windows, macOS, and desktop Safari', async () => {
+  const js = await read('install.js');
+  assert.match(js, /function isIOS\(\)/);
+  assert.match(js, /function isAndroid\(\)/);
+  assert.match(js, /function isWindows\(\)/);
+  assert.match(js, /function isMacOS\(\)/);
+  assert.match(js, /function isDesktopSafari\(\)/);
+  assert.match(js, /navigator\.userAgentData/);
+  assert.match(js, /navigator\.platform/);
+});
+
+test('install controller is capability-first and adapts ready copy for Android and desktop', async () => {
   const js = await read('install.js');
   const destinations = js.match(/https:\/\/myhrfh\.com/g) ?? [];
   assert.ok(destinations.length >= 1, 'myHRFH destination must be present');
   assert.match(js, /beforeinstallprompt/);
+  assert.match(js, /renderInstallReady\(\)/);
+  assert.match(js, /Install the HRFH web app for quick access from your home screen\./i);
+  assert.match(js, /Install the HRFH web app for quick access from this computer\./i);
+  assert.match(js, /installButton\.textContent\s*=\s*['"]Install HRFH web app['"]/);
   assert.match(js, /appinstalled/);
-  assert.match(js, /Add the HRFH web app in two quick steps\./i);
-  assert.match(js, /Add the HRFH web app\./i);
   assert.match(js, /\.\/service-worker\.js/);
-  assert.doesNotMatch(js, /Add myHRFH in three quick steps/i);
+});
+
+test('iPhone and iPad receive Safari-specific two-step guidance', async () => {
+  const js = await read('install.js');
+  assert.match(js, /Add the HRFH web app in two quick steps\./i);
+  assert.match(js, /Tap Share/i);
+  assert.match(js, /Add to Home Screen/i);
+  assert.match(js, /Open this page in Safari\./i);
+});
+
+test('desktop fallbacks distinguish Mac Safari and general desktop browsers', async () => {
+  const js = await read('install.js');
+  assert.match(js, /Add to Dock/i);
+  assert.match(js, /File[^<]*>[^<]*Add to Dock|File[^\n]*Add to Dock/i);
+  assert.match(js, /Install the HRFH web app from your browser menu\./i);
+  assert.match(js, /this computer/i);
 });
 
 test('installed shortcut immediately forwards to myHRFH instead of rendering installer', async () => {
@@ -127,7 +155,7 @@ test('service worker never proxies or caches myHRFH and enforces same origin', a
   assert.match(worker, /url\.origin\s*!==\s*self\.location\.origin/);
 });
 
-test('service worker rotates cache after modern branded icon replacement', async () => {
+test('service worker rotates cache after device-aware controller refinement', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-shortcut-test-v6['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-shortcut-test-v7['"]/);
 });
