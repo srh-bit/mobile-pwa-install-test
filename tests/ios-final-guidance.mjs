@@ -8,9 +8,10 @@ const read = (path) => readFile(fileUrl(path), 'utf8');
 test('final iOS assistant has no calibration questions or browser-switch copy', async () => {
   const html = await read('index.html');
   const js = await read('ios-guidance-v2.js');
+  const css = await read('ios-guidance-v3.css');
   const docs = await read('docs/PRODUCTION-READINESS.md');
 
-  for (const source of [html, js, docs]) {
+  for (const source of [js, docs]) {
     assert.doesNotMatch(source, /What do you see/i);
     assert.doesNotMatch(source, /Where is your Chrome address bar/i);
     assert.doesNotMatch(source, /Change toolbar setting/i);
@@ -18,7 +19,10 @@ test('final iOS assistant has no calibration questions or browser-switch copy', 
   }
 
   assert.doesNotMatch(js, /CALIBRATION_SESSION_KEY|buildCalibration|needsCalibration|data-calibration-value/i);
-  assert.doesNotMatch(html, /ios-open-chrome|ios-use-safari/i);
+  assert.match(js, /browserActions\.hidden\s*=\s*true/i);
+  assert.match(css, /#ios-browser-actions[\s\S]*display:\s*none\s*!important/i);
+  assert.doesNotMatch(html, />\s*↑\s*</);
+  assert.doesNotMatch(html, /▢/);
 });
 
 test('final iOS guide uses vector iOS-style Share, More, and Add to Home Screen symbols only', async () => {
