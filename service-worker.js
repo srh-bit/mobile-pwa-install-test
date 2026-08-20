@@ -3,6 +3,7 @@ const BUILD_REVISION = 'desktop-installed-state-v2';
 const IOS_MODAL_REVISION = 'ios-install-modal-v1';
 const IOS_BROWSER_REVISION = 'ios-chrome-priority-v1';
 const IOS_GUIDED_OVERLAY_REVISION = 'ios-guided-overlay-v1';
+const IOS_GUIDANCE_REVISION = 'ios-guidance-v2';
 const PRODUCTION_REVISION = 'production-readiness-v1';
 const APP_SHELL = [
   './',
@@ -10,7 +11,9 @@ const APP_SHELL = [
   './launch.html',
   './styles.css',
   './ios-modal.css',
+  './ios-guidance-v2.css',
   './install.js',
+  './ios-guidance-v2.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png'
