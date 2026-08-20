@@ -3,9 +3,19 @@
 }
 
 :root {
+  --brand-purple: #4a0d7f;
+  --brand-purple-bright: #8d4bd8;
+  --brand-orange: #f6a13d;
+  --brand-coral: #ff655e;
+  --page: #f7f5f2;
+  --surface: #ffffff;
+  --ink: #2d2733;
+  --muted: #6f6877;
+  --line: #ebe6ef;
+  --soft-purple: #f5effb;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #e5eefb;
-  background: #07101d;
+  color: var(--ink);
+  background: var(--page);
   font-synthesis: none;
 }
 
@@ -14,8 +24,9 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top, rgba(63, 126, 201, 0.18), transparent 38rem),
-    #07101d;
+    radial-gradient(circle at 12% 8%, rgba(246, 161, 61, 0.16), transparent 18rem),
+    radial-gradient(circle at 92% 5%, rgba(141, 75, 216, 0.15), transparent 22rem),
+    var(--page);
 }
 
 button,
@@ -31,61 +42,91 @@ a {
 }
 
 .install-card {
-  width: min(100%, 430px);
-  padding: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
-  background: rgba(15, 27, 45, 0.94);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+  position: relative;
+  overflow: hidden;
+  width: min(100%, 440px);
+  padding: 30px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 28px 70px rgba(56, 32, 75, 0.12);
+}
+
+.install-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  background: linear-gradient(90deg, var(--brand-orange), var(--brand-coral) 38%, var(--brand-purple-bright) 70%, var(--brand-purple));
+}
+
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+.brand-icon {
+  width: 38px;
+  height: 38px;
+  display: block;
+  object-fit: contain;
+}
+
+.brand-name {
+  color: var(--brand-purple);
+  font-size: 1.22rem;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+
+.brand-name strong {
+  font-weight: 800;
+}
+
+.hero-copy {
   text-align: center;
 }
 
-.app-mark {
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 18px;
-  border-radius: 20px;
-  display: block;
-  object-fit: contain;
-  background: #fff;
-  box-shadow: inset 0 0 0 1px rgba(11, 47, 84, 0.08);
-}
-
 .eyebrow {
-  margin: 0 0 8px;
-  color: #93b7df;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--soft-purple);
+  color: var(--brand-purple);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 h1 {
   margin: 0;
-  font-size: clamp(1.8rem, 7vw, 2.45rem);
-  line-height: 1.05;
-  letter-spacing: -0.035em;
-}
-
-.destination {
-  margin: 12px 0 0;
-  color: #9ed0ff;
-  font-weight: 700;
+  color: var(--ink);
+  font-size: clamp(2rem, 8vw, 2.7rem);
+  line-height: 1.02;
+  letter-spacing: -0.05em;
 }
 
 .intro {
   margin: 18px auto 0;
-  max-width: 34ch;
-  color: #b9c9dc;
-  line-height: 1.55;
+  max-width: 35ch;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
 .platform-content {
-  margin: 24px 0 0;
-  padding: 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #d7e4f3;
+  margin: 26px 0 0;
+  padding: 17px 18px;
+  border: 1px solid #e7dff0;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fbf8ff, #f6f1fb);
+  color: #4a4152;
   text-align: left;
   line-height: 1.5;
 }
@@ -94,8 +135,13 @@ h1 {
   margin: 0;
 }
 
+.platform-content strong {
+  color: var(--brand-purple);
+}
+
 .platform-lead {
   margin-bottom: 14px !important;
+  font-weight: 650;
 }
 
 .install-steps {
@@ -109,7 +155,7 @@ h1 {
 .install-step {
   display: grid;
   grid-template-columns: 32px 1fr;
-  gap: 10px;
+  gap: 11px;
   align-items: start;
 }
 
@@ -119,9 +165,10 @@ h1 {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #dcecff;
-  color: #0b2f54;
+  background: var(--brand-purple);
+  color: #fff;
   font-weight: 800;
+  box-shadow: 0 5px 14px rgba(74, 13, 127, 0.2);
 }
 
 .step-copy {
@@ -129,8 +176,12 @@ h1 {
   gap: 2px;
 }
 
+.step-copy strong {
+  color: var(--ink);
+}
+
 .step-copy span {
-  color: #aebfd2;
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
@@ -142,16 +193,15 @@ h1 {
 
 .button {
   width: 100%;
-  min-height: 48px;
-  border: 0;
-  border-radius: 14px;
-  padding: 12px 16px;
+  min-height: 52px;
+  border-radius: 15px;
+  padding: 13px 18px;
   display: inline-grid;
   place-items: center;
   text-decoration: none;
-  font-weight: 750;
+  font-weight: 800;
   cursor: pointer;
-  transition: transform 120ms ease, opacity 120ms ease, box-shadow 120ms ease;
+  transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
 }
 
 .button:hover {
@@ -159,7 +209,7 @@ h1 {
 }
 
 .button:focus-visible {
-  outline: 3px solid #a9d5ff;
+  outline: 3px solid rgba(141, 75, 216, 0.35);
   outline-offset: 3px;
 }
 
@@ -169,38 +219,54 @@ h1 {
 }
 
 .button-primary {
-  background: #dcecff;
-  color: #082845;
-  box-shadow: 0 9px 28px rgba(62, 133, 205, 0.25);
+  border: 0;
+  background: linear-gradient(135deg, #6f23aa, var(--brand-purple));
+  color: #fff;
+  box-shadow: 0 12px 28px rgba(74, 13, 127, 0.25);
 }
 
 .button-secondary {
-  background: rgba(255, 255, 255, 0.08);
-  color: #e8f2ff;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid #d9cce5;
+  background: #fff;
+  color: var(--brand-purple);
 }
 
 .status {
-  min-height: 1.25em;
-  margin: 16px 0 0;
-  color: #9fb4ca;
-  font-size: 0.86rem;
+  min-height: 1.2em;
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
   line-height: 1.45;
+  text-align: center;
 }
 
-.note {
-  margin: 18px 0 0;
-  color: #7389a0;
-  font-size: 0.76rem;
-  line-height: 1.45;
+.trust-note {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #7c7482;
+  font-size: 0.78rem;
 }
 
-.install-card.installed {
-  border-color: rgba(113, 214, 164, 0.45);
+.trust-note strong {
+  color: #544a59;
+}
+
+.trust-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-orange), var(--brand-coral));
+  box-shadow: 0 0 0 4px rgba(246, 161, 61, 0.11);
 }
 
 .install-card.installed .platform-content {
-  background: rgba(84, 187, 135, 0.1);
+  border-color: #d8eadf;
+  background: #f4fbf6;
 }
 
 [hidden] {
@@ -209,7 +275,15 @@ h1 {
 
 @media (max-width: 370px) {
   .install-card {
-    padding: 22px 18px;
-    border-radius: 20px;
+    padding: 25px 20px;
+    border-radius: 23px;
+  }
+
+  .brand-lockup {
+    margin-bottom: 25px;
+  }
+
+  h1 {
+    font-size: 2rem;
   }
 }
