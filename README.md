@@ -17,13 +17,9 @@ Android Chromium uses the browser's native PWA install flow when `beforeinstallp
 - `beforeinstallprompt` never erases positive installed evidence by itself.
 - **Reinstall** explicitly clears fallback receipt state and asks Chrome to reassess installability.
 
-### Restore Home Screen shortcut
+When Android installation is confirmed, the user-facing installed state is intentionally simple: **Open HRFH web app** and **Reinstall**. The confirmation card states that the **myHRFH icon was added to the Home Screen**.
 
-A website can determine that its related PWA is installed on supported Android Chrome, but it **cannot inspect or verify whether the Android Home Screen/launcher icon itself is currently present**. Android does not expose the launcher's icon database to web pages.
-
-For that reason, a confirmed installed Android PWA shows **Restore Home Screen shortcut**. The action gives the safe Android recovery path: open the app list, find **myHRFH**, touch and hold it, then add/drag it back to the Home Screen. If myHRFH is no longer in the app list, use **Reinstall** instead.
-
-There is intentionally no Uninstall control in the installer.
+A website cannot inspect or verify whether the Android Home Screen/launcher icon remains present after installation, so the installer does not expose a Restore or Uninstall control on Android.
 
 ## iPhone, iPad, and desktop
 
@@ -48,8 +44,8 @@ node --check service-worker.js
 node --test tests/*.mjs
 ```
 
-Current cache identity: `myhrfh-installer-v8`. Android recovery revision: `android-pwa-recovery-v2`. iOS guidance revision: `ios-final-guidance-v2`.
+Current cache identity: `myhrfh-installer-v8`. Android recovery revision: `android-pwa-recovery-v2`. Android installed UI revision: `android-installed-ui-v1`. iOS guidance revision: `ios-final-guidance-v2`.
 
-Physical-device acceptance is still required before broad production release, including Android install/refresh/installed detection/Home Screen shortcut recovery/Reinstall, iPhone/iPad Safari and Chrome variants, desktop browser states, safe areas, zoom/reflow, reduced motion, and screen-reader operation.
+Physical-device acceptance is still required before broad production release, including Android install/refresh/installed detection/Reinstall, iPhone/iPad Safari and Chrome variants, desktop browser states, safe areas, zoom/reflow, reduced motion, and screen-reader operation.
 
 `main` is not used as a live production deployment target during staging validation.
