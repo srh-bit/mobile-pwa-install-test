@@ -112,6 +112,7 @@ test('styles preserve HRFH palette with subtle depth and gloss without forced up
 test('install controller detects iOS, Android, Windows, macOS, and desktop Safari', async () => {
   const js = await read('install.js');
   assert.match(js, /function isIOS\(\)/);
+  assert.match(js, /function isIOSChrome\(\)/);
   assert.match(js, /function isAndroid\(\)/);
   assert.match(js, /function isWindows\(\)/);
   assert.match(js, /function isMacOS\(\)/);
@@ -133,12 +134,14 @@ test('install controller is capability-first and adapts ready copy for Android a
   assert.match(js, /\.\/service-worker\.js/);
 });
 
-test('iPhone and iPad receive Safari-specific two-step guidance', async () => {
+test('iPhone and iPad prioritize Chrome and retain Safari fallback guidance', async () => {
   const js = await read('install.js');
-  assert.match(js, /Add the HRFH web app in two quick steps\./i);
-  assert.match(js, /Tap Share/i);
+  assert.match(js, /Google Chrome is preferred/i);
+  assert.match(js, /Chrome Share/i);
+  assert.match(js, /Safari Share/i);
   assert.match(js, /Add to Home Screen/i);
-  assert.match(js, /Open this page in Safari\./i);
+  assert.match(js, /Continue in Safari/i);
+  assert.match(js, /googlechromes:/i);
 });
 
 test('desktop fallbacks distinguish Mac Safari and general desktop browsers', async () => {
