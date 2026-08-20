@@ -1,14 +1,13 @@
-const CACHE_NAME = 'myhrfh-shortcut-test-v7';
+const CACHE_NAME = 'myhrfh-shortcut-test-v8';
 const APP_SHELL = [
   './',
   './index.html',
+  './launch.html',
   './styles.css',
   './install.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-maskable-192.png',
-  './icons/icon-maskable-512.png'
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
