@@ -10,11 +10,12 @@ async function readManifest() {
   return JSON.parse(await read('manifest.webmanifest'));
 }
 
-function pngDimensions(buffer) {
+function pngMetadata(buffer) {
   assert.equal(buffer.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', 'asset must be a PNG');
   return {
     width: buffer.readUInt32BE(16),
-    height: buffer.readUInt32BE(20)
+    height: buffer.readUInt32BE(20),
+    colorType: buffer[25]
   };
 }
 
@@ -42,35 +43,43 @@ test('manifest uses only local HR for Health PNG artwork for install icons', asy
   assert.ok(!icons.some((icon) => /^https?:/i.test(icon.src)), 'install icons must not depend on an external host');
 });
 
-test('native install assets are real branded-size PNGs, not the old tiny placeholders', async () => {
+test('native install assets are RGBA branded PNGs with translucent-capable artwork', async () => {
   const assets = [
-    ['icons/icon-192.png', 192, 1000],
-    ['icons/icon-512.png', 512, 3000],
-    ['icons/icon-maskable-192.png', 192, 1000],
-    ['icons/icon-maskable-512.png', 512, 3000]
+    ['icons/icon-192.png', 192, 2500],
+    ['icons/icon-512.png', 512, 5000],
+    ['icons/icon-maskable-192.png', 192, 2500],
+    ['icons/icon-maskable-512.png', 512, 5000]
   ];
 
   for (const [path, expectedSize, minimumBytes] of assets) {
     const buffer = await readBuffer(path);
-    const dimensions = pngDimensions(buffer);
-    assert.deepEqual(dimensions, { width: expectedSize, height: expectedSize }, `${path} dimensions`);
-    assert.ok(buffer.length > minimumBytes, `${path} must not be the previous placeholder asset`);
+    const metadata = pngMetadata(buffer);
+    assert.deepEqual(
+      { width: metadata.width, height: metadata.height },
+      { width: expectedSize, height: expectedSize },
+      `${path} dimensions`
+    );
+    assert.equal(metadata.colorType, 6, `${path} must use RGBA color for translucent icon treatment`);
+    assert.ok(buffer.length > minimumBytes, `${path} must contain full branded artwork`);
   }
 });
 
-test('page uses local HRFH artwork and professional HR for Health branding', async () => {
+test('page uses concise sentence-case HRFH web app language', async () => {
   const html = await read('index.html');
   assert.match(html, /rel=["']manifest["'][^>]+href=["']\.\/manifest\.webmanifest["']/i);
   assert.match(html, /rel=["']apple-touch-icon["'][^>]+href=["']\.\/icons\/icon-192\.png["']/i);
   assert.match(html, /class=["']brand-icon["'][^>]+src=["']\.\/icons\/icon-192\.png["']/i);
   assert.match(html, /HR for Health/i);
-  assert.match(html, /Add myHRFH to your phone/i);
-  assert.match(html, /myhrfh\.com/i);
-  assert.match(html, /href=["']\.\/styles\.css["']/i);
-  assert.match(html, /src=["']\.\/install\.js["']/i);
+  assert.match(html, />HRFH web app</i);
+  assert.match(html, /Add the HRFH web app/i);
+  assert.match(html, /Your HR for Health portal, one tap from your Home Screen\./i);
+  assert.match(html, />Add HRFH web app</i);
+  assert.match(html, />Open myHRFH</i);
+  assert.match(html, /Opens <strong>myhrfh\.com<\/strong>/i);
+  assert.doesNotMatch(html, /No app store|no download|no long setup/i);
 });
 
-test('styles use the HR for Health light, purple, orange, and coral visual system', async () => {
+test('styles preserve HRFH palette with subtle depth and gloss without forced uppercase', async () => {
   const css = await read('styles.css');
   assert.match(css, /--brand-purple:\s*#4a0d7f/i);
   assert.match(css, /--brand-purple-bright:\s*#8d4bd8/i);
@@ -78,16 +87,22 @@ test('styles use the HR for Health light, purple, orange, and coral visual syste
   assert.match(css, /--brand-coral:\s*#ff655e/i);
   assert.match(css, /--page:\s*#f7f5f2/i);
   assert.match(css, /--surface:\s*#ffffff/i);
+  assert.match(css, /\.install-card::after/);
+  assert.match(css, /\.button-primary::before/);
+  assert.match(css, /backdrop-filter:\s*blur\(/i);
+  assert.doesNotMatch(css, /text-transform:\s*uppercase/i);
 });
 
-test('install controller targets myHRFH and supports Android and iOS flows', async () => {
+test('install controller uses concise HRFH web app wording for Android and iOS', async () => {
   const js = await read('install.js');
   const destinations = js.match(/https:\/\/myhrfh\.com/g) ?? [];
   assert.ok(destinations.length >= 1, 'myHRFH destination must be present');
   assert.match(js, /beforeinstallprompt/);
   assert.match(js, /appinstalled/);
-  assert.match(js, /Add to Home Screen/i);
+  assert.match(js, /Add the HRFH web app in two quick steps\./i);
+  assert.match(js, /Add the HRFH web app\./i);
   assert.match(js, /\.\/service-worker\.js/);
+  assert.doesNotMatch(js, /Add myHRFH in three quick steps/i);
 });
 
 test('installed shortcut immediately forwards to myHRFH instead of rendering installer', async () => {
@@ -111,7 +126,7 @@ test('service worker never proxies or caches myHRFH and enforces same origin', a
   assert.match(worker, /url\.origin\s*!==\s*self\.location\.origin/);
 });
 
-test('service worker rotates cache after branded native icon replacement', async () => {
+test('service worker rotates cache after modern branded icon replacement', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-shortcut-test-v5['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-shortcut-test-v6['"]/);
 });
