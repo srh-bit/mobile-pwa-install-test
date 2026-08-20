@@ -28,6 +28,12 @@ test('managed Android build keeps production identity and origin as explicit rel
   assert.match(app, /buildConfigField\s+['"]String['"],\s*['"]HRFH_TWA_ORIGIN['"]/);
 });
 
+test('managed Android rejects any runtime build override away from the production origin', async () => {
+  const app = await readOptional('android/app/build.gradle');
+  assert.match(app, /if\s*\(\s*trustedOrigin\s*!=\s*['"]https:\/\/myhrfh\.com['"]\s*\)/i);
+  assert.match(app, /GradleException[^\n]*HRFH_TWA_ORIGIN/i);
+});
+
 test('managed Android manifest is fixed-origin and least privilege', async () => {
   const manifest = await readOptional('android/app/src/main/AndroidManifest.xml');
   assert.match(manifest, /android\.permission\.INTERNET/);
@@ -65,6 +71,12 @@ test('native Android code never uses hidden launcher or package-management APIs'
   assert.match(source, /Intent\.ACTION_DELETE/);
   assert.match(source, /RELATION_USE_AS_ORIGIN/);
   assert.match(source, /requestPostMessageChannel/);
+});
+
+test('same-origin relationship revocation disables the native channel immediately', async () => {
+  const bridge = await readOptional('android/app/src/main/java/com/hrforhealth/myhrfh/NativeManagementBridge.java');
+  assert.match(bridge, /relationshipValidated\s*=\s*result/);
+  assert.match(bridge, /if\s*\(\s*!result\s*\)\s*\{[\s\S]*?channelReady\s*=\s*false;[\s\S]*?channelRequested\s*=\s*false;/i);
 });
 
 test('production Digital Asset Links template is explicit and non-deployable until release inputs exist', async () => {
