@@ -8,11 +8,12 @@ const read = (path) => readFile(fileUrl(path), 'utf8');
 test('iOS final guidance is direct and contains no calibration interaction', async () => {
   const js = await read('ios-guidance-v2.js');
 
-  assert.match(js, /GUIDANCE_REVISION\s*=\s*['"]ios-final-guidance-v1['"]/i);
+  assert.match(js, /GUIDANCE_REVISION\s*=\s*['"]ios-final-guidance-v2['"]/i);
   assert.match(js, /chrome-phone-portrait/i);
   assert.match(js, /safari-phone/i);
   assert.match(js, /Tap Share/i);
   assert.match(js, /More/i);
+  assert.match(js, /<circle\s+cx="12"\s+cy="12"\s+r="10"\s+fill="none"/i);
   assert.doesNotMatch(js, /CALIBRATION_SESSION_KEY|needsCalibration|buildCalibration|sessionStorage|data-calibration-value/i);
 });
 
@@ -25,11 +26,13 @@ test('stable layouts may use an edge cue while ambiguous Chrome portrait does no
   assert.match(js, /ios-final-edge-guide/i);
 });
 
-test('final coachmark styling supports safe areas and reduced motion', async () => {
+test('final coachmark styling supports HRFH branding, safe areas, and reduced motion', async () => {
   const css = await read('ios-guidance-v3.css');
 
   assert.match(css, /ios-final-edge-guide/i);
   assert.match(css, /ios-symbol-shell/i);
+  assert.match(css, /var\(--brand-purple\)/i);
+  assert.match(css, /rgba\(255,\s*111,\s*66/i);
   assert.match(css, /env\(safe-area-inset-(top|bottom|left|right)\)/i);
   assert.match(css, /prefers-reduced-motion/i);
   assert.doesNotMatch(css, /ios-v3-calibration-option/i);
