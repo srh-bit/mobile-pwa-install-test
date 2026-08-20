@@ -99,7 +99,10 @@ test('same-origin relationship revocation disables the native channel immediatel
 
 test('TWA launch failure falls back to a normal Custom Tab instead of crashing', async () => {
   const activity = await readOptional('android/app/src/main/java/com/hrforhealth/myhrfh/ManagedTwaActivity.java');
-  const trusted = activity.match(/private void launchTrusted\([^)]*\)\s*\{([\s\S]*?)\n\s*\}/)?.[1] ?? '';
+  const trustedStart = activity.indexOf('private void launchTrusted');
+  const fallbackStart = activity.indexOf('private void launchFallback');
+  assert.ok(trustedStart >= 0 && fallbackStart > trustedStart);
+  const trusted = activity.slice(trustedStart, fallbackStart);
   assert.match(trusted, /catch\s*\(RuntimeException\s+exception\)/);
   assert.match(trusted, /launchFallback\(\)/);
   assert.match(activity, /buildCustomTabsIntent\(\)/);
