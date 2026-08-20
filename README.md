@@ -1,120 +1,57 @@
-# HRFH web app installer
+# myHRFH mobile install prototype
 
-Device-aware, HR for Health-branded web-app installation experience targeting **https://myhrfh.com**.
+This repository hosts the public staging implementation for installing quick access to the HR for Health portal as a web app across supported mobile and desktop browsers.
 
-The repository is the release candidate for the public installer experience. The current GitHub Pages deployment is the **staging/device-validation host**; the final production deployment should serve the installer assets from the `myhrfh.com` origin as described in [`docs/PRODUCTION-READINESS.md`](docs/PRODUCTION-READINESS.md).
+The staging installer is published through GitHub Pages and ultimately targets `https://myhrfh.com`.
 
-## User experience
+## Public staging URL
 
-The installer is capability-first and platform-aware:
+`https://srh-bit.github.io/mobile-pwa-install-test/`
 
-1. Running as the installed web app → open `https://myhrfh.com` immediately before installer UI paints.
-2. Installation confirmed by a supported browser → show **HRFH web app is installed** with:
-   - **Open HRFH web app**
-   - **Restore shortcut**
-   - **Uninstall** instructions
-3. Native PWA install capability available → show **Install HRFH web app** and invoke the browser's native prompt.
-4. iPhone/iPad → prefer Google Chrome when available, with Safari as the fallback; both use Apple's required Share → Add to Home Screen flow.
-5. Android without the native event → provide the browser-menu install fallback.
-6. Mac Safari → provide **File → Add to Dock** guidance.
-7. Other/indeterminate browsers → provide conservative install guidance without falsely claiming installed or not installed.
+## What the installer does
 
-## Installed-state behavior
+- Detects iPhone/iPad, Android, Windows, macOS, and generic desktop environments.
+- Uses the browser's native install prompt where supported.
+- Uses browser-specific manual-install guidance where the platform does not expose a programmable prompt.
+- Prioritizes Google Chrome on iPhone/iPad, with Safari fallback.
+- Provides a branded iOS visual guidance overlay for Share → Add to Home Screen.
+- Detects supported installed-PWA states conservatively and never treats an empty relationship API result as definitive proof of uninstall.
+- Preserves a verified same-origin install receipt after real standalone launch or `appinstalled`, allowing legacy desktop installs to remain recognizable after manifest evolution.
+- Clears that receipt when a real `beforeinstallprompt` is exposed, preventing stale installed state after uninstall.
+- Shows Restore shortcut / Uninstall management only when installation is positively confirmed and those actions are applicable to the current platform.
+- Immediately forwards installed launches to `https://myhrfh.com` before installer UI can paint.
 
-A public website can sometimes confirm that the PWA is installed through `navigator.getInstalledRelatedApps()`, but that capability is not universal. The implementation therefore uses three states: **installed**, **not installed**, and **unknown**.
+## Important platform limitations
 
-A website cannot reliably determine whether the app's icon is currently visible on the home screen, desktop, Dock, taskbar, or launcher. For a confirmed installation, **Restore shortcut** provides platform-specific steps rather than claiming that icon placement has been detected.
+A normal public web page cannot reliably detect whether a launcher/Home Screen/Desktop icon itself is visible. A PWA can remain installed even after a user removes only a desktop shortcut.
 
-A website also cannot silently uninstall the app. **Uninstall** provides browser/device-specific removal steps and keeps removal under user control.
+A normal public web page also cannot programmatically uninstall a PWA. Where appropriate, the installer provides browser/OS instructions while leaving removal under user control.
 
-## Current supported paths
+On iOS, Apple does not expose an Android-style programmable Add to Home Screen prompt. The installer therefore provides visual on-screen guidance while the final Share → Add to Home Screen action remains controlled by iOS/browser UI.
 
-- Android Chrome / supported Chromium native install prompt
-- Android browser-menu fallback
-- iPhone/iPad Chrome Share → Add to Home Screen
-- iPhone/iPad Safari fallback with the same Apple-controlled install step
-- Windows Chrome and Edge native PWA installation
-- Current supported Chromium installed-state detection
-- Windows Chrome/Edge shortcut restore and uninstall guidance
-- macOS Chrome/Edge native PWA installation when supported
-- macOS Safari Add to Dock guidance
-- generic desktop/browser fallback
+## Staging versus production
 
-## Branding and launch behavior
+GitHub Pages is the device-validation host only. For the final public production route, the installer assets should be served from a deliberately scoped same-origin path on `myhrfh.com` so the manifest, service worker, icons, launch route, and portal share the production origin.
 
-- professional HR for Health light/purple/orange/coral visual system
-- sentence-case, concise public copy
-- local transparent 192×192 and 512×512 HRFH mark-only PNG icons
-- no maskable icon that would force a solid launcher background
-- dedicated `launch.html` pre-paint redirect to prevent the installer page flashing on app launch
-- legacy standalone redirect in `index.html` for previously installed builds
+See [`docs/PRODUCTION-READINESS.md`](docs/PRODUCTION-READINESS.md) for the full browser matrix, security requirements, caching rules, service-worker boundary, accessibility contract, installed-state behavior, and production deployment checklist.
 
-## GitHub Pages staging limitation
+## Security and privacy
 
-A PWA `start_url` must remain within the origin/scope where it is installed. The staging manifest therefore launches a minimal GitHub Pages `launch.html` shell, which redirects immediately to `https://myhrfh.com` before the installer UI renders.
+The installer:
 
-Android/Chrome can still show a Chrome badge when the staging origin is installed as a website shortcut instead of a full WebAPK. That badge is platform UI and is not embedded in the HRFH icon.
+- accepts no arbitrary redirect destination;
+- collects no credentials or personal information;
+- includes no analytics or advertising identifiers;
+- has no Salesforce or privileged-system access;
+- does not proxy or cache cross-origin portal traffic;
+- uses a same-origin install receipt containing only a boolean installed marker;
+- does not attempt to bypass browser/OS install or uninstall consent.
 
-For the strongest no-intermediary/no-browser-badge production experience, host the manifest, service worker, icons, installer, and launch route directly on `myhrfh.com` and review the final service-worker scope before publishing broadly.
+See [`SECURITY.md`](SECURITY.md) for the security policy and reporting guidance.
 
-## Public-readiness safeguards
+## Repository validation
 
-- no credentials, Salesforce access, analytics, PII collection, or native packages
-- fixed `https://myhrfh.com` destination
-- same-origin-only service-worker interception
-- network-first navigation freshness for the installer shell
-- release cache identity `myhrfh-installer-v1`
-- no programmatic uninstall or consent bypass
-- `no-referrer` and staging/public installer `noindex, nofollow` metadata
-- accessible management dialog and visible keyboard focus states
-- reduced-motion support
-- deterministic Node.js regression suite
-- CI syntax checks for browser scripts before behavioral validation
-
-See:
-
-- [`docs/PRODUCTION-READINESS.md`](docs/PRODUCTION-READINESS.md) for browser scenarios, deployment headers, failure handling, accessibility, and release checklist.
-- [`SECURITY.md`](SECURITY.md) for the security boundary and private reporting guidance.
-
-## Device retesting
-
-### Android
-
-1. For a clean first-install test, remove the previously installed web app, not only its Home Screen icon.
-2. Open `https://srh-bit.github.io/mobile-pwa-install-test/` in Chrome and refresh once.
-3. Confirm **Install HRFH web app** appears when Chrome exposes its native prompt.
-4. Install and verify the transparent HRFH mark artwork.
-5. Revisit the installer in a supported browser and confirm the Installed state when the browser can prove installation.
-6. Test **Restore shortcut** after removing only the launcher shortcut while leaving the app installed.
-7. Test **Uninstall** instructions.
-
-### iPhone / iPad
-
-1. Open the staging installer in Safari.
-2. Confirm Google Chrome is prioritized with Safari retained as the fallback.
-3. In Chrome, confirm Chrome Share → **Add to Home Screen** guidance.
-4. Without Chrome available, confirm Safari Share → **Add to Home Screen** remains usable.
-5. Launch the added web app and confirm the installer UI does not flash before `myhrfh.com` opens.
-
-Normal iOS browser tabs cannot reliably confirm whether the web app is already installed or whether its Home Screen icon exists; the public UI does not make that false claim.
-
-### Windows / Chromium
-
-1. Fully uninstall myHRFH from browser app management to test a first install.
-2. Reload the installer and confirm the native install action appears when available.
-3. Install it and revisit the installer; supported Chromium should show the Installed management state.
-4. Delete only the desktop shortcut while keeping the PWA installed.
-5. Revisit the installer and use **Restore shortcut** (`chrome://apps` or `edge://apps`, depending on browser).
-6. Verify the Uninstall guidance independently.
-
-### macOS
-
-- Chrome/Edge: validate the native install path and installed management where supported.
-- Safari: validate **File → Add to Dock**, launch behavior, and Applications/Dock removal guidance.
-
-## Validation
-
-GitHub Actions runs direct syntax checks followed by the full deterministic Node.js test suite on the feature branch and pull requests:
+GitHub Actions validates browser JavaScript syntax and the complete behavior/security/readiness suite on each feature-branch/PR change:
 
 ```text
 node --check install.js
@@ -122,15 +59,19 @@ node --check service-worker.js
 node --test tests/*.mjs
 ```
 
-The suite covers manifest identity, native icon metadata, launch behavior, device/browser detection, iOS Chrome priority, desktop installed-state detection, public installed-management states, service-worker boundaries/freshness, accessibility hooks, production safeguards, and production/security documentation.
+The current suite covers manifest/install identity, transparent icons, installed launch, Android/desktop native install prompts, legacy installed-state continuity, Chrome-first iOS handling, Safari fallback, iOS visual guidance, capability-gated management controls, service-worker scope/freshness, accessibility hooks, privacy safeguards, and production documentation.
 
-## Release boundary
+## Physical-device acceptance
 
-Automated green status means the installer implementation meets repository acceptance checks. Public production launch additionally requires:
+Before production rollout, test at minimum:
 
-- same-origin deployment under `myhrfh.com`;
-- production HTTP security/cache headers;
-- final service-worker scope review;
-- clean physical-device acceptance on supported Android, iOS/iPadOS, Windows, and macOS paths.
+- Android Chrome clean install, already installed, uninstall/reinstall, and badged-shortcut fallback.
+- iPhone Chrome guided install.
+- iPhone Safari Chrome-first handoff and Safari fallback.
+- iPad portrait and landscape guidance.
+- Windows Chrome clean install, existing install, deleted desktop shortcut while app remains installed, and uninstall/reinstall.
+- Windows Edge equivalent states.
+- macOS Chrome/Edge and Safari Add to Dock.
+- keyboard navigation, screen-reader dialog labels, zoom/reflow, and reduced-motion behavior.
 
-PR #1 intentionally remains draft until that device acceptance is complete.
+`main` is not used as a live production deployment target during staging validation.
