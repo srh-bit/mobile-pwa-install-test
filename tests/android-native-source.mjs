@@ -1,0 +1,75 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+const fileUrl = (path) => new URL(`../${path}`, import.meta.url);
+const read = (path) => readFile(fileUrl(path), 'utf8');
+
+const readOptional = async (path) => {
+  try {
+    return await read(path);
+  } catch {
+    return '';
+  }
+};
+
+test('managed Android build uses pinned current public tooling', async () => {
+  const root = await readOptional('android/build.gradle');
+  const app = await readOptional('android/app/build.gradle');
+
+  assert.match(root, /com\.android\.application['"]?\s+version\s+['"]9\.3\.1['"]/i);
+  assert.match(app, /compileSdk\s+37/);
+  assert.match(app, /targetSdk\s+36/);
+  assert.match(app, /minSdk\s+26/);
+  assert.match(app, /androidx\.browser:browser:1\.10\.0/);
+  assert.match(app, /com\.google\.code\.gson:gson:2\.14\.0/);
+  assert.match(app, /junit:junit:4\.13\.2/);
+  assert.match(app, /JavaVersion\.VERSION_17/);
+});
+
+test('managed Android build keeps production identity and origin as explicit release inputs', async () => {
+  const app = await readOptional('android/app/build.gradle');
+
+  assert.match(app, /HRFH_ANDROID_APPLICATION_ID/);
+  assert.match(app, /com\.hrforhealth\.myhrfh\.staging/);
+  assert.match(app, /HRFH_TWA_ORIGIN/);
+  assert.match(app, /https:\/\/myhrfh\.com/);
+  assert.match(app, /buildConfigField\s+['"]String['"],\s*['"]HRFH_TWA_ORIGIN['"]/);
+});
+
+test('managed Android manifest is fixed-origin and least privilege', async () => {
+  const manifest = await readOptional('android/app/src/main/AndroidManifest.xml');
+
+  assert.match(manifest, /android\.permission\.INTERNET/);
+  assert.match(manifest, /ManagedTwaActivity/);
+  assert.match(manifest, /android:exported=["']true["']/);
+  assert.match(manifest, /android:autoVerify=["']true["']/);
+  assert.match(manifest, /android:scheme=["']https["']/);
+  assert.match(manifest, /android:host=["']myhrfh\.com["']/);
+  assert.doesNotMatch(manifest, /QUERY_ALL_PACKAGES|REQUEST_INSTALL_PACKAGES|DELETE_PACKAGES|INSTALL_SHORTCUT/i);
+});
+
+test('managed Android CI pins Java and Gradle and compiles native code', async () => {
+  const workflow = await read('.github/workflows/validate.yml');
+
+  assert.match(workflow, /actions\/setup-java@/);
+  assert.match(workflow, /java-version:\s*['"]?17['"]?/);
+  assert.match(workflow, /gradle\/actions\/setup-gradle@/);
+  assert.match(workflow, /gradle-version:\s*['"]?9\.5\.0['"]?/);
+  assert.match(workflow, /platforms;android-37/);
+  assert.match(workflow, /build-tools;36\.0\.0/);
+  assert.match(workflow, /gradle\s+-p\s+android\s+testDebugUnitTest\s+lintDebug\s+assembleDebug/);
+});
+
+test('native Android code never uses hidden launcher or package-management APIs', async () => {
+  const paths = [
+    'android/app/src/main/java/com/hrforhealth/myhrfh/ManagedTwaActivity.java',
+    'android/app/src/main/java/com/hrforhealth/myhrfh/NativeManagementBridge.java',
+    'android/app/src/main/java/com/hrforhealth/myhrfh/ShortcutController.java',
+    'android/app/src/main/java/com/hrforhealth/myhrfh/UninstallController.java'
+  ];
+  const source = (await Promise.all(paths.map(readOptional))).join('\n');
+
+  assert.doesNotMatch(source, /INSTALL_SHORTCUT|DELETE_PACKAGES|Runtime\.getRuntime|ProcessBuilder|Class\.forName|setAccessible\(|exec\s*\(/i);
+  assert.doesNotMatch(source, /content:\/\/.*launcher|launcher\.settings|LauncherProvider/i);
+});
