@@ -12,7 +12,7 @@ test('iOS guidance uses the final direct assistant and accurate action symbols',
 
   assert.match(html, /ios-guidance-v3\.css/i);
   assert.match(html, /ios-guidance-v2\.js/i);
-  assert.match(js, /ios-final-guidance-v1/i);
+  assert.match(js, /ios-final-guidance-v2/i);
   assert.match(js, /function guidanceProfile\(/);
   assert.match(js, /chrome-phone-portrait/i);
   assert.match(js, /safari-phone/i);
@@ -24,15 +24,17 @@ test('iOS guidance uses the final direct assistant and accurate action symbols',
   assert.doesNotMatch(js, /navigator\.share\s*\(/i, 'install guidance must not open the generic Web Share sheet');
 
   assert.match(css, /\.ios-share-symbol/);
+  assert.match(css, /\.ios-more-symbol/);
   assert.match(css, /\.ios-add-home-symbol/);
   assert.match(css, /\.ios-final-edge-guide/);
   assert.match(css, /prefers-reduced-motion/i);
 });
 
-test('Safari guidance covers direct Share, More fallback, and current web-app steps without asking questions', async () => {
+test('Safari guidance covers direct Share, circled More fallback, and current web-app steps without asking questions', async () => {
   const js = await read('ios-guidance-v2.js');
 
   assert.match(js, /More[^\n]*Share|More.*Share/is);
+  assert.match(js, /<circle\s+cx="12"\s+cy="12"\s+r="10"\s+fill="none"/i);
   assert.match(js, /Open as Web App/i);
   assert.match(js, /Edit Actions/i);
   assert.match(js, /Add to Home Screen/i);
@@ -61,6 +63,6 @@ test('release cache includes final iOS guidance assets', async () => {
 
   assert.match(worker, /ios-guidance-v2\.js/i);
   assert.match(worker, /ios-guidance-v3\.css/i);
-  assert.match(worker, /ios-final-guidance-v1/i);
-  assert.match(worker, /myhrfh-installer-v4/i);
+  assert.match(worker, /ios-final-guidance-v2/i);
+  assert.match(worker, /myhrfh-installer-v5/i);
 });
