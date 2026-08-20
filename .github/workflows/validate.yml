@@ -23,5 +23,9 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
+      - name: Check browser script syntax
+        run: |
+          node --check install.js
+          node --check service-worker.js
       - name: Run repository validation
         run: node --test tests/*.mjs
