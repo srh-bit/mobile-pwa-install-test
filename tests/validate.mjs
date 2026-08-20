@@ -174,7 +174,8 @@ test('service worker never proxies or caches myHRFH and enforces same origin', a
   assert.match(worker, /\.\/launch\.html/);
 });
 
-test('service worker uses the release cache identity', async () => {
+test('service worker uses the guided release cache identity', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v1['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v2['"]/);
+  assert.match(worker, /const IOS_GUIDED_OVERLAY_REVISION = ['"]ios-guided-overlay-v1['"]/);
 });
