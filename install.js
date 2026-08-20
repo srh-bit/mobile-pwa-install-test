@@ -428,9 +428,39 @@ function attemptChromeHandoff() {
   window.location.href = chromeURL;
 }
 
+function getAndroidNativeBridge() {
+  const bridge = window.HRFHAndroidNative;
+  if (!bridge || typeof bridge.isReady !== 'function' || typeof bridge.getCapabilities !== 'function' || typeof bridge.request !== 'function') {
+    return null;
+  }
+  return bridge;
+}
+
+function nativeHasCapability(action) {
+  if (!isAndroid()) {
+    return false;
+  }
+  const bridge = getAndroidNativeBridge();
+  if (!bridge || !bridge.isReady()) {
+    return false;
+  }
+  try {
+    return bridge.getCapabilities().includes(action);
+  } catch {
+    return false;
+  }
+}
+
 function getInstalledManagementAvailability({ confirmed = false } = {}) {
   if (!confirmed || isIOS()) {
     return { restore: false, uninstall: false };
+  }
+
+  if (isAndroid()) {
+    return {
+      restore: nativeHasCapability('restore-shortcut'),
+      uninstall: nativeHasCapability('uninstall')
+    };
   }
 
   const supportedInstalledManagement = isChromeDesktop()
@@ -466,7 +496,9 @@ function setInstalledState(message = 'HRFH web app is installed.', { confirmed =
   openButton.classList.add('button-primary');
 
   if (isAndroid()) {
-    platformContent.innerHTML = `<p><strong>${message}</strong><br>Open it now. Use Reinstall only if you removed it from this device.</p>`;
+    platformContent.innerHTML = management.restore || management.uninstall
+      ? `<p><strong>${message}</strong><br>Open it now or use Android's confirmed management actions below.</p>`
+      : `<p><strong>${message}</strong><br>Open it now. Use Reinstall only if you removed it from this device.</p>`;
   } else {
     platformContent.innerHTML = management.restore
       ? `<p><strong>${message}</strong><br>Shortcut placement is managed by your device. If the icon is missing, restore it below.</p>`
@@ -597,6 +629,58 @@ function showUninstallHelp() {
 
   setManagementContent('Uninstall myHRFH', copy, steps);
   showManagementDialog();
+}
+
+async function requestAndroidShortcutRestore() {
+  const bridge = getAndroidNativeBridge();
+  if (!bridge || !nativeHasCapability('restore-shortcut')) {
+    setStatus('Android shortcut management is unavailable in this browser session.');
+    return;
+  }
+
+  restoreShortcutButton.disabled = true;
+  setStatus('Opening Android shortcut confirmation…');
+  try {
+    const result = await bridge.request('restore-shortcut');
+    if (result.status === 'already-present') {
+      setStatus('The HRFH shortcut is already available.');
+    } else if (result.status === 'requested') {
+      setStatus('Android opened the shortcut confirmation.');
+    } else if (result.status === 'unsupported') {
+      setStatus('This Android launcher does not support shortcut restore.');
+    } else {
+      setStatus('Android could not start shortcut restore.');
+    }
+  } catch {
+    setStatus('Android shortcut management is unavailable.');
+  } finally {
+    restoreShortcutButton.disabled = false;
+  }
+}
+
+async function requestAndroidUninstall() {
+  const bridge = getAndroidNativeBridge();
+  if (!bridge || !nativeHasCapability('uninstall')) {
+    setStatus('Android uninstall management is unavailable in this browser session.');
+    return;
+  }
+
+  uninstallButton.disabled = true;
+  setStatus('Opening Android uninstall confirmation…');
+  try {
+    const result = await bridge.request('uninstall');
+    if (result.status === 'requested') {
+      setStatus('Android opened the uninstall confirmation.');
+    } else if (result.status === 'unsupported') {
+      setStatus('Android could not open the uninstall screen on this device.');
+    } else {
+      setStatus('Android could not start uninstall.');
+    }
+  } catch {
+    setStatus('Android uninstall management is unavailable.');
+  } finally {
+    uninstallButton.disabled = false;
+  }
 }
 
 function renderAndroidFallback() {
@@ -765,8 +849,28 @@ reinstallButton?.addEventListener('click', () => {
   window.location.reload();
 });
 
-restoreShortcutButton?.addEventListener('click', showShortcutHelp);
-uninstallButton?.addEventListener('click', showUninstallHelp);
+restoreShortcutButton?.addEventListener('click', () => {
+  if (isAndroid() && nativeHasCapability('restore-shortcut')) {
+    void requestAndroidShortcutRestore();
+    return;
+  }
+  showShortcutHelp();
+});
+
+uninstallButton?.addEventListener('click', () => {
+  if (isAndroid() && nativeHasCapability('uninstall')) {
+    void requestAndroidUninstall();
+    return;
+  }
+  showUninstallHelp();
+});
+
+window.addEventListener('hrfh-android-native-ready', () => {
+  if (installedStateDetected && isAndroid()) {
+    setInstalledState('HRFH web app is installed.', { confirmed: true });
+  }
+});
+
 managementClose?.addEventListener('click', closeManagementDialog);
 managementDone?.addEventListener('click', closeManagementDialog);
 managementDialog?.addEventListener('click', (event) => {

@@ -39,6 +39,7 @@ jobs:
           "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
       - name: Check browser script syntax
         run: |
+          node --check android-native-bridge.js
           node --check install.js
           node --check ios-guidance-v2.js
           node --check service-worker.js
