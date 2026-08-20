@@ -27,7 +27,7 @@ The installer must not place credentials, session tokens, personal information, 
 
 Installed-state checks use browser capability signals only. They do not require user identity. The verified install receipt is a same-origin boolean marker only.
 
-The final iOS guidance stores no toolbar-layout calibration or browser-choice state. Browser/device/orientation signals are used only in memory to select the appropriate visual instructions for the current page view.
+The final iOS install assistant stores no toolbar-layout calibration or preference state. Share, circled More, and Add-to-Home-Screen instructional symbols are rendered from static same-origin UI code and do not collect device configuration, identity, authentication state, analytics identifiers, browsing history, or PII.
 
 ## Reporting a security issue
 
