@@ -58,8 +58,8 @@ test('iPhone guidance stays direct while covering Share and circled More without
   assert.doesNotMatch(js, /navigator\.share\s*\(/i);
 });
 
-test('release cache rotates for circled iOS More guidance', async () => {
+test('release cache preserves final iOS More guidance in Android v6 release', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /myhrfh-installer-v5/i);
+  assert.match(worker, /myhrfh-installer-v6/i);
   assert.match(worker, /ios-final-guidance-v2/i);
 });
