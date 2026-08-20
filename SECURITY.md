@@ -25,7 +25,9 @@ Before production deployment, review the service-worker scope on `myhrfh.com` so
 
 The installer must not place credentials, session tokens, personal information, or sensitive state in its source, manifest, service-worker cache, URL parameters, or browser storage.
 
-Installed-state checks use browser capability signals only. They do not require user identity.
+Installed-state checks use browser capability signals only. They do not require user identity. The verified install receipt is a same-origin boolean marker only.
+
+The iOS install assistant may use `sessionStorage` for one non-sensitive toolbar calibration choice during the current browser session. Allowed values describe UI only (for example, address bar `top`/`bottom` or Safari `share`/`more`). This calibration must contain no identity, authentication state, analytics identifiers, browsing history, or PII and must not be promoted to persistent tracking storage.
 
 ## Reporting a security issue
 
@@ -36,5 +38,7 @@ Use GitHub private vulnerability reporting if it is enabled for this repository,
 ## Public deployment expectations
 
 Production hosting must use HTTPS and appropriate security headers, including a restrictive Content-Security-Policy, Strict-Transport-Security after domain readiness is confirmed, X-Content-Type-Options, Referrer-Policy, and a least-privilege Permissions-Policy.
+
+The final deployment must keep calibration and installed-state storage within the deliberately scoped installer/application origin, review the service-worker scope, and complete the physical-device acceptance matrix before broad release.
 
 See `docs/PRODUCTION-READINESS.md` for the complete production deployment and browser validation checklist.
