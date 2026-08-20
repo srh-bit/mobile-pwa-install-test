@@ -13,7 +13,7 @@
   const shareCue = document.getElementById('ios-share-cue');
   const browserActions = document.getElementById('ios-browser-actions');
 
-  if (!modal || !toolbarGuide || !sheet || !guideSteps) {
+  if (!modal || !toolbarGuide || !sheet || !guideSteps || !modalNote) {
     return;
   }
 
@@ -208,8 +208,50 @@
     }
   }
 
+  function removeEnhancedElements() {
+    sheet.querySelector('.ios-v2-toolbar-preview')?.remove();
+    sheet.querySelector('.ios-v2-recovery')?.remove();
+    toolbarGuide.hidden = true;
+    toolbarGuide.innerHTML = '';
+  }
+
+  function isEnhancementIntact(profile) {
+    const preview = sheet.querySelector('.ios-v2-toolbar-preview');
+    if (!preview || preview.dataset.guidanceProfile !== profile.key || stepOne?.textContent !== profile.stepOne) {
+      return false;
+    }
+
+    if (profile.browser === 'Safari') {
+      return modalNote.textContent.includes('Open as Web App');
+    }
+
+    if (profile.browser === 'Chrome') {
+      return modalNote.textContent.includes('Share sheet');
+    }
+
+    return true;
+  }
+
+  let applying = false;
+  let lastSignature = '';
+
   function enhanceIOSGuidance() {
-    if (!isIOS() || modal.hidden || shareCue?.hidden || browserActions?.hidden === false) {
+    if (applying) {
+      return;
+    }
+
+    const actionable = isIOS() && !modal.hidden && !shareCue?.hidden && browserActions?.hidden !== false;
+    if (!actionable) {
+      if (lastSignature || modal.classList.contains('ios-v2-active')) {
+        applying = true;
+        clearProfileClasses();
+        removeEnhancedElements();
+        modal.removeAttribute('data-ios-guidance-revision');
+        modal.removeAttribute('data-ios-guidance-profile');
+        modal.removeAttribute('data-ios-guidance-confidence');
+        lastSignature = '';
+        applying = false;
+      }
       return;
     }
 
@@ -218,53 +260,59 @@
       return;
     }
 
-    clearProfileClasses();
-    modal.classList.add('ios-v2-active', `ios-v2-${profile.key}`, `ios-v2-${profile.confidence}`);
-    if (profile.edge === 'top-right') {
-      modal.classList.add('ios-v2-exact-top-right');
+    const signature = `${profile.key}|${profile.confidence}|${profile.edge || 'none'}`;
+    if (signature === lastSignature && isEnhancementIntact(profile)) {
+      return;
     }
 
-    const oldPreview = sheet.querySelector('.ios-v2-toolbar-preview');
-    oldPreview?.remove();
-    const oldRecovery = sheet.querySelector('.ios-v2-recovery');
-    oldRecovery?.remove();
-
-    guideSteps.insertAdjacentHTML('afterend', buildToolbarPreview(profile));
-    modalNote.insertAdjacentHTML('afterend', buildRecoveryDetails(profile));
-    buildEdgeGuide(profile);
-
-    if (stepOne) {
-      stepOne.textContent = profile.stepOne;
-    }
-    if (stepTwo) {
-      stepTwo.textContent = 'Add to Home Screen';
-    }
-
-    if (profile.browser === 'Safari') {
-      if (modalCopy) {
-        modalCopy.textContent = profile.key === 'safari-phone'
-          ? 'Use Safari Share, then Add to Home Screen.'
-          : 'Tap Share, then Add to Home Screen.';
+    applying = true;
+    try {
+      clearProfileClasses();
+      modal.classList.add('ios-v2-active', `ios-v2-${profile.key}`, `ios-v2-${profile.confidence}`);
+      if (profile.edge === 'top-right') {
+        modal.classList.add('ios-v2-exact-top-right');
       }
-      if (modalNote) {
+
+      removeEnhancedElements();
+      guideSteps.insertAdjacentHTML('afterend', buildToolbarPreview(profile));
+      modalNote.insertAdjacentHTML('afterend', buildRecoveryDetails(profile));
+      buildEdgeGuide(profile);
+
+      if (stepOne) {
+        stepOne.textContent = profile.stepOne;
+      }
+      if (stepTwo) {
+        stepTwo.textContent = 'Add to Home Screen';
+      }
+
+      if (profile.browser === 'Safari') {
+        if (modalCopy) {
+          modalCopy.textContent = profile.key === 'safari-phone'
+            ? 'Use Safari Share, then Add to Home Screen.'
+            : 'Tap Share, then Add to Home Screen.';
+        }
         modalNote.innerHTML = 'Choose <strong>Add to Home Screen</strong>, keep <strong>Open as Web App</strong> on, then tap <strong>Add</strong>.';
-      }
-    } else if (profile.browser === 'Chrome') {
-      if (modalCopy) {
-        modalCopy.textContent = 'Tap Share beside the address bar, then Add to Home Screen.';
-      }
-      if (modalNote) {
+      } else if (profile.browser === 'Chrome') {
+        if (modalCopy) {
+          modalCopy.textContent = 'Tap Share beside the address bar, then Add to Home Screen.';
+        }
         modalNote.innerHTML = 'In the Share sheet, choose <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>.';
       }
-    }
 
-    modal.dataset.iosGuidanceRevision = GUIDANCE_REVISION;
-    modal.dataset.iosGuidanceProfile = profile.key;
-    modal.dataset.iosGuidanceConfidence = profile.confidence;
+      modal.dataset.iosGuidanceRevision = GUIDANCE_REVISION;
+      modal.dataset.iosGuidanceProfile = profile.key;
+      modal.dataset.iosGuidanceConfidence = profile.confidence;
+      lastSignature = signature;
+    } finally {
+      applying = false;
+    }
   }
 
   let frame = null;
   function scheduleEnhancement() {
+    if (applying) {
+      return;
+    }
     if (frame !== null) {
       cancelAnimationFrame(frame);
     }
