@@ -18,7 +18,7 @@ test('managed Android build uses pinned current public tooling', async () => {
   const app = await readOptional('android/app/build.gradle');
 
   assert.match(root, /com\.android\.application['"]?\s+version\s+['"]9\.3\.1['"]/i);
-  assert.match(app, /compileSdk\s+37/);
+  assert.match(app, /compileSdk\s+36/);
   assert.match(app, /targetSdk\s+36/);
   assert.match(app, /minSdk\s+26/);
   assert.match(app, /androidx\.browser:browser:1\.10\.0/);
@@ -56,7 +56,7 @@ test('managed Android CI pins Java and Gradle and compiles native code', async (
   assert.match(workflow, /java-version:\s*['"]?17['"]?/);
   assert.match(workflow, /gradle\/actions\/setup-gradle@/);
   assert.match(workflow, /gradle-version:\s*['"]?9\.5\.0['"]?/);
-  assert.match(workflow, /platforms;android-37/);
+  assert.match(workflow, /platforms;android-36/);
   assert.match(workflow, /build-tools;36\.0\.0/);
   assert.match(workflow, /gradle\s+-p\s+android\s+testDebugUnitTest\s+lintDebug\s+assembleDebug/);
 });

@@ -9,7 +9,7 @@ def trustedOrigin = providers.gradleProperty('HRFH_TWA_ORIGIN')
 
 android {
     namespace 'com.hrforhealth.myhrfh'
-    compileSdk 37
+    compileSdk 36
 
     defaultConfig {
         applicationId applicationIdValue
