@@ -54,8 +54,9 @@ test('Android receipt is only fallback evidence when the browser cannot complete
 
 test('PWA-only release rotates cache and removes native bridge shell asset', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v8['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v9['"]/);
   assert.match(worker, /ANDROID_INSTALL_REVISION\s*=\s*['"]android-pwa-recovery-v2['"]/);
+  assert.match(worker, /HRFH_ICON_REVISION\s*=\s*['"]hrfh-transparent-icon-v1['"]/);
   assert.doesNotMatch(worker, /ANDROID_NATIVE_MANAGEMENT_REVISION|android-native-bridge\.js/);
 });
 
