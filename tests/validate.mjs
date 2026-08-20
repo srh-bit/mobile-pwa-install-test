@@ -2,10 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+const fileUrl = (path) => new URL(`../${path}`, import.meta.url);
+const read = (path) => readFile(fileUrl(path), 'utf8');
+const readBuffer = (path) => readFile(fileUrl(path));
 
 async function readManifest() {
   return JSON.parse(await read('manifest.webmanifest'));
+}
+
+function pngDimensions(buffer) {
+  assert.equal(buffer.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', 'asset must be a PNG');
+  return {
+    width: buffer.readUInt32BE(16),
+    height: buffer.readUInt32BE(20)
+  };
 }
 
 test('manifest defines a same-origin standalone myHRFH app with HRFH theme', async () => {
@@ -30,6 +40,22 @@ test('manifest uses only local HR for Health PNG artwork for install icons', asy
   assert.ok(icons.some((icon) => icon.src === './icons/icon-maskable-192.png' && icon.sizes === '192x192' && icon.purpose === 'maskable'));
   assert.ok(icons.some((icon) => icon.src === './icons/icon-maskable-512.png' && icon.sizes === '512x512' && icon.purpose === 'maskable'));
   assert.ok(!icons.some((icon) => /^https?:/i.test(icon.src)), 'install icons must not depend on an external host');
+});
+
+test('native install assets are real branded-size PNGs, not the old tiny placeholders', async () => {
+  const assets = [
+    ['icons/icon-192.png', 192, 1000],
+    ['icons/icon-512.png', 512, 3000],
+    ['icons/icon-maskable-192.png', 192, 1000],
+    ['icons/icon-maskable-512.png', 512, 3000]
+  ];
+
+  for (const [path, expectedSize, minimumBytes] of assets) {
+    const buffer = await readBuffer(path);
+    const dimensions = pngDimensions(buffer);
+    assert.deepEqual(dimensions, { width: expectedSize, height: expectedSize }, `${path} dimensions`);
+    assert.ok(buffer.length > minimumBytes, `${path} must not be the previous placeholder asset`);
+  }
 });
 
 test('page uses local HRFH artwork and professional HR for Health branding', async () => {
