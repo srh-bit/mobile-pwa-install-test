@@ -1,5 +1,6 @@
 const CACHE_NAME = 'myhrfh-shortcut-test-v8';
-const BUILD_REVISION = 'ios-install-modal-v1';
+const BUILD_REVISION = 'desktop-installed-state-v1';
+const IOS_MODAL_REVISION = 'ios-install-modal-v1';
 const APP_SHELL = [
   './',
   './index.html',
