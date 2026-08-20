@@ -19,12 +19,12 @@ function pngMetadata(buffer) {
   };
 }
 
-test('manifest defines a same-origin standalone myHRFH app with HRFH theme', async () => {
+test('manifest defines a same-origin standalone myHRFH app with a dedicated launch shell', async () => {
   const manifest = await readManifest();
   assert.equal(manifest.name, 'myHRFH');
   assert.equal(manifest.short_name, 'myHRFH');
   assert.equal(manifest.id, './');
-  assert.equal(manifest.start_url, './');
+  assert.equal(manifest.start_url, './launch.html');
   assert.equal(manifest.scope, './');
   assert.equal(manifest.display, 'standalone');
   assert.equal(manifest.background_color, '#ffffff');
@@ -32,24 +32,22 @@ test('manifest defines a same-origin standalone myHRFH app with HRFH theme', asy
   assert.equal(manifest.prefer_related_applications, false);
 });
 
-test('manifest uses only local HR for Health PNG artwork for install icons', async () => {
+test('manifest uses only local standard HRFH PNG artwork and no maskable tile', async () => {
   const manifest = await readManifest();
   const icons = manifest.icons ?? [];
-  assert.ok(icons.length >= 4);
+  assert.equal(icons.length, 2);
   assert.ok(icons.every((icon) => icon.src.startsWith('./icons/') && icon.type === 'image/png'));
-  assert.ok(icons.some((icon) => icon.src === './icons/icon-192.png' && icon.sizes === '192x192' && icon.purpose === 'any'));
-  assert.ok(icons.some((icon) => icon.src === './icons/icon-512.png' && icon.sizes === '512x512' && icon.purpose === 'any'));
-  assert.ok(icons.some((icon) => icon.src === './icons/icon-maskable-192.png' && icon.sizes === '192x192' && icon.purpose === 'maskable'));
-  assert.ok(icons.some((icon) => icon.src === './icons/icon-maskable-512.png' && icon.sizes === '512x512' && icon.purpose === 'maskable'));
+  assert.ok(icons.every((icon) => icon.purpose === 'any'));
+  assert.ok(icons.some((icon) => icon.src === './icons/icon-192.png' && icon.sizes === '192x192'));
+  assert.ok(icons.some((icon) => icon.src === './icons/icon-512.png' && icon.sizes === '512x512'));
+  assert.ok(!icons.some((icon) => /maskable/i.test(icon.purpose ?? '') || /maskable/i.test(icon.src)), 'mark-only design must not expose a maskable tile');
   assert.ok(!icons.some((icon) => /^https?:/i.test(icon.src)), 'install icons must not depend on an external host');
 });
 
-test('native install assets are RGBA branded PNGs with translucent-capable artwork', async () => {
+test('native standard install assets are RGBA branded PNGs', async () => {
   const assets = [
     ['icons/icon-192.png', 192, 2500],
-    ['icons/icon-512.png', 512, 5000],
-    ['icons/icon-maskable-192.png', 192, 2500],
-    ['icons/icon-maskable-512.png', 512, 5000]
+    ['icons/icon-512.png', 512, 5000]
   ];
 
   for (const [path, expectedSize, minimumBytes] of assets) {
@@ -60,9 +58,17 @@ test('native install assets are RGBA branded PNGs with translucent-capable artwo
       { width: expectedSize, height: expectedSize },
       `${path} dimensions`
     );
-    assert.equal(metadata.colorType, 6, `${path} must use RGBA color for translucent icon treatment`);
+    assert.equal(metadata.colorType, 6, `${path} must use RGBA color for transparent mark artwork`);
     assert.ok(buffer.length > minimumBytes, `${path} must contain full branded artwork`);
   }
+});
+
+test('launch shell redirects before installer UI can paint', async () => {
+  const launch = await read('launch.html');
+  const head = launch.match(/<head>([\s\S]*?)<\/head>/i)?.[1] ?? '';
+  assert.match(head, /window\.location\.replace\(['"]https:\/\/myhrfh\.com['"]\)/i);
+  assert.match(head, /http-equiv=["']refresh["'][^>]+https:\/\/myhrfh\.com/i);
+  assert.doesNotMatch(launch, /install-card|platform-content|install-button/i);
 });
 
 test('page uses concise sentence-case HRFH web app language', async () => {
@@ -134,7 +140,7 @@ test('desktop fallbacks distinguish Mac Safari and general desktop browsers', as
   assert.match(js, /this computer/i);
 });
 
-test('installed shortcut immediately forwards to myHRFH instead of rendering installer', async () => {
+test('legacy installed entry still forwards to myHRFH', async () => {
   const js = await read('install.js');
   assert.match(
     js,
@@ -153,9 +159,10 @@ test('service worker never proxies or caches myHRFH and enforces same origin', a
   assert.doesNotMatch(worker, /myhrfh\.com/i);
   assert.match(worker, /request\.method\s*!==\s*['"]GET['"]/);
   assert.match(worker, /url\.origin\s*!==\s*self\.location\.origin/);
+  assert.match(worker, /\.\/launch\.html/);
 });
 
-test('service worker rotates cache after device-aware controller refinement', async () => {
+test('service worker rotates cache after seamless-launch refinement', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-shortcut-test-v7['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-shortcut-test-v8['"]/);
 });
