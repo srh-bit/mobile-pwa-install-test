@@ -125,7 +125,11 @@ async function getInstallationState() {
       return manifestMatches || appIdMatches;
     });
 
-    return installed ? 'installed' : 'not-installed';
+    if (installed) {
+      return 'installed';
+    }
+
+    return 'not-installed';
   } catch {
     return 'unknown';
   }
@@ -389,7 +393,7 @@ function closeManagementDialog() {
 }
 
 function showShortcutHelp() {
-  let copy = 'Shortcut placement is managed by your device.';
+  const copy = 'Shortcut placement is managed by your device.';
   let steps;
 
   if (isAndroid()) {
