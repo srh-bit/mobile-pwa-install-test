@@ -17,16 +17,15 @@ The web platform does not expose Android's launcher/Home Screen icon inventory. 
 
 It must not claim otherwise.
 
-## Restore Home Screen shortcut
+## Installed experience
 
-Whenever Android PWA installation is positively confirmed, the installer offers **Restore Home Screen shortcut** as an optional recovery action. It instructs the user to:
+The Android installed state is intentionally minimal:
 
-1. Open the Android app list.
-2. Find **myHRFH**.
-3. Touch and hold it, then choose the launcher's Add-to-Home action or drag it onto the Home Screen.
-4. If myHRFH is absent from the app list, return to the installer and use **Reinstall**.
+- **Open HRFH web app**
+- **Reinstall**
+- confirmation: **The myHRFH icon was added to your Home Screen.**
 
-This is the strongest safe PWA-only restore path. A one-click programmatic re-pin would require privileged/native launcher integration that the browser does not provide.
+There is no Restore or Uninstall control on Android. If a user later removes only the Home Screen icon while keeping the PWA installed, recovery is handled directly through the Android launcher/app list rather than through this installer.
 
 ## Duplicate-install prevention
 
