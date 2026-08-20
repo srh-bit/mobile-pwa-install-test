@@ -74,8 +74,8 @@ test('page uses concise sentence-case HRFH web app language', async () => {
   assert.match(html, />HRFH web app</i);
   assert.match(html, /Add the HRFH web app/i);
   assert.match(html, /Your HR for Health portal, one tap from your home screen\./i);
-  assert.match(html, />Add HRFH web app</i);
-  assert.match(html, />Open myHRFH</i);
+  assert.match(html, /<button[^>]+id=["']install-button["'][^>]*>\s*Add HRFH web app\s*<\/button>/is);
+  assert.match(html, /<a[^>]+id=["']open-button["'][^>]*>\s*Open myHRFH\s*<\/a>/is);
   assert.match(html, /Opens <strong>myhrfh\.com<\/strong>/i);
   assert.doesNotMatch(html, /No app store|no download|no long setup/i);
 });
