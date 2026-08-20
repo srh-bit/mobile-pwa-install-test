@@ -5,14 +5,13 @@ import { readFile } from 'node:fs/promises';
 const fileUrl = (path) => new URL(`../${path}`, import.meta.url);
 const read = (path) => readFile(fileUrl(path), 'utf8');
 
-test('installed state exposes restore through explicit confirmation gating and no uninstall control', async () => {
+test('installed state keeps Android recovery to Open and Reinstall with no uninstall control', async () => {
   const html = await read('index.html');
   const js = await read('install.js');
-  assert.match(html, /id=["']restore-shortcut-button["'][^>]+hidden/i);
+  const availability = js.match(/function getInstalledManagementAvailability\([^)]*\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
   assert.doesNotMatch(html, /id=["']uninstall-button["']/i);
-  assert.match(js, /function getInstalledManagementAvailability\(/);
-  assert.match(js, /confirmed/);
-  assert.match(js, /restoreShortcutButton\.hidden\s*=\s*!management\.restore/);
+  assert.match(availability, /isAndroid\(\)[^\n]*restore:\s*false/i);
+  assert.match(js, /reinstallButton\.hidden\s*=\s*!\(confirmed\s*&&\s*isAndroid\(\)\)/i);
   assert.doesNotMatch(js, /requestAndroidUninstall|showUninstallHelp|HRFHAndroidNative/);
 });
 
@@ -42,12 +41,11 @@ test('installation probing uses definitive empty result only on supported Androi
   assert.match(stateFunction, /return ['"]unknown['"]/);
 });
 
-test('shortcut recovery remains user-controlled', async () => {
+test('desktop shortcut recovery remains user-controlled', async () => {
   const js = await read('install.js');
-  assert.match(js, /Open your app list and find myHRFH/i);
   assert.match(js, /chrome:\/\/apps/i);
   assert.match(js, /edge:\/\/apps/i);
-  assert.match(js, /cannot inspect the Android Home Screen or launcher icon/i);
+  assert.doesNotMatch(js, /ShortcutManager|requestPinShortcut|launcher database/i);
 });
 
 test('public installer includes privacy and indexing safeguards without iOS calibration storage', async () => {
@@ -73,8 +71,8 @@ test('production readiness and security guidance document browser-only boundarie
   const security = await read('SECURITY.md');
   assert.match(readiness, /myhrfh\.com/i);
   assert.match(readiness, /getInstalledRelatedApps/i);
-  assert.match(readiness, /Restore Home Screen shortcut/i);
   assert.match(readiness, /cannot[^\n]*(?:inspect|detect|verify)[^\n]*(?:Home Screen|launcher)/i);
+  assert.doesNotMatch(readiness, /Android[^\n]*Restore Home Screen shortcut/i);
   assert.doesNotMatch(readiness, /Managed Android TWA|ShortcutManager|ACTION_DELETE/i);
   assert.match(readiness, /Content-Security-Policy/i);
   assert.match(readiness, /Strict-Transport-Security/i);
