@@ -47,13 +47,15 @@ test('iOS guidance uses a branded modal and direct iOS-style action symbols', as
 test('installation probing confirms installed state and keeps empty relationship results unknown', async () => {
   const js = await read('install.js');
   const stateFunction = js.match(/async function getInstallationState\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
+  const promptHandler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
 
   assert.match(js, /async function getInstallationState\(\)/);
   assert.match(stateFunction, /return ['"]installed['"]/);
   assert.match(stateFunction, /return ['"]unknown['"]/);
   assert.doesNotMatch(stateFunction, /return ['"]not-installed['"]/);
   assert.match(js, /INSTALL_RECEIPT_KEY/);
-  assert.match(js, /beforeinstallprompt[\s\S]*clearInstallReceipt\(\)/s);
+  assert.match(promptHandler, /readInstallReceipt\(\)/);
+  assert.doesNotMatch(promptHandler, /clearInstallReceipt\(\)/);
   assert.match(js, /INSTALL_PROMPT_WAIT_MS/);
 });
 
@@ -87,10 +89,11 @@ test('public installer includes privacy and indexing safeguards without iOS cali
   assert.doesNotMatch(guidanceJs, /sessionStorage|localStorage/i);
 });
 
-test('service worker uses production navigation freshness and the v5 release cache identity', async () => {
+test('service worker uses production navigation freshness and the v6 release cache identity', async () => {
   const worker = await read('service-worker.js');
 
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v5['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v6['"]/);
+  assert.match(worker, /android-installed-state-v1/i);
   assert.match(worker, /ios-final-guidance-v2/i);
   assert.match(worker, /production-readiness-v1/i);
   assert.match(worker, /request\.mode\s*===\s*['"]navigate['"]/);
