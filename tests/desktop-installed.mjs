@@ -21,15 +21,16 @@ test('manifest declares itself as a related web app for installed-state detectio
   assert.equal(manifest.prefer_related_applications, false);
 });
 
-test('desktop controller detects an already-installed PWA before rendering fallback guidance', async () => {
+test('desktop controller confirms installed state before rendering fallback guidance', async () => {
   const js = await read('install.js');
   assert.match(js, /navigator\.getInstalledRelatedApps/);
-  assert.match(js, /async function isPWAInstalled\(\)/);
+  assert.match(js, /async function getInstallationState\(\)/);
   assert.match(js, /HRFH web app is already installed\./i);
   assert.match(js, /openButton\.href\s*=\s*['"]\.\/launch\.html['"]/);
   assert.match(js, /openButton\.textContent\s*=\s*['"]Open HRFH web app['"]/);
-  assert.match(js, /await isPWAInstalled\(\)/);
-  assert.match(js, /if\s*\(deferredInstallPrompt\)\s*\{\s*renderInstallReady\(\)/s);
+  assert.match(js, /const installationState = await getInstallationState\(\)/);
+  assert.match(js, /installationState\s*===\s*['"]installed['"]/);
+  assert.match(js, /deferredInstallPrompt\s*\|\|\s*await waitForInstallPrompt\(\)/);
 });
 
 test('service worker refreshes the app shell for desktop installed-state detection', async () => {
