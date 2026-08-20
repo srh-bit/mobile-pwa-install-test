@@ -9,6 +9,13 @@
   "background_color": "#ffffff",
   "theme_color": "#4a0d7f",
   "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "./manifest.webmanifest",
+      "id": "https://srh-bit.github.io/mobile-pwa-install-test/"
+    }
+  ],
   "icons": [
     {
       "src": "./icons/icon-192.png",
