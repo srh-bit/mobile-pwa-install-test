@@ -1,195 +1,214 @@
 # HRFH web app installer — production readiness
 
-This document defines the production contract for the public HR for Health web-app installer that ultimately targets `https://myhrfh.com`.
+This document defines the production contract for the public HR for Health web-app installer targeting `https://myhrfh.com`.
 
 ## Production outcome
 
-The public installer must give each visitor the most accurate action supported by the current browser without claiming capabilities the browser or operating system does not expose.
+The installer must present the strongest action the current device/browser can truthfully support without claiming access to operating-system state or browser chrome that web content cannot inspect.
 
-The final production package should be served from the `myhrfh.com` origin. The GitHub Pages site remains a staging/device-validation host only. Serving the manifest, service worker, icons, installer, and launch route from `myhrfh.com` removes the cross-origin launch intermediary and gives Android/desktop Chromium the strongest opportunity to install a full PWA rather than a browser-badged shortcut.
+GitHub Pages is the staging/device-validation host only. The production package should be served from a deliberately scoped path on `myhrfh.com` so the manifest, service worker, launch route, icons, and destination are same-origin and do not require the GitHub launch intermediary.
 
-## State model
+## Governing state model
 
-The installer uses these states in order:
+1. **Running as the installed web app** — redirect to `https://myhrfh.com` before installer UI paints.
+2. **Installed confirmed** — show the installed state and Open action. Show Restore shortcut and Uninstall only when installation is positively confirmed and the current platform has an applicable management path.
+3. **Installable** — if Chromium exposes `beforeinstallprompt`, show the native Install HRFH web app action.
+4. **Manual install** — iPhone/iPad and browsers without a programmable install prompt receive browser-specific Add to Home Screen / Add to Dock guidance.
+5. **Unknown** — do not claim installed or not installed. Do not expose installed-only management actions.
 
-1. **Running as the installed web app** — redirect immediately to `https://myhrfh.com` before installer UI paints.
-2. **Installed confirmed** — where the browser can positively confirm this PWA, show the Installed state and Open action. Management actions are capability-gated:
-   - **Restore shortcut** appears only when installation is positively confirmed and the current platform has an applicable restore path.
-   - **Uninstall** appears only when installation is positively confirmed and the current platform has an applicable browser/OS removal path.
-   - If those conditions are not met, neither management action is shown.
-3. **Installable / not installed** — when Chromium exposes `beforeinstallprompt`, show the native Install HRFH web app action.
-4. **Manual-install platform** — iPhone/iPad and browsers that do not expose a programmable install prompt receive concise browser-specific Add to Home Screen / Add to Dock guidance.
-5. **Unknown** — when installation state cannot be proven, show conservative browser guidance. Do not claim that the app is installed or not installed and do not expose installed-only management actions.
+## Installed-state limits
 
-## Important browser limitations
+`navigator.getInstalledRelatedApps()` is used only when available and only as positive evidence. Missing support, errors, or an empty relationship result remain **unknown** rather than proving uninstall.
 
-### Installed-state detection
+A same-origin boolean receipt (`myhrfh-install-receipt-v1=installed`) provides continuity for verified prior installs:
 
-`navigator.getInstalledRelatedApps()` is used only when present. It can confirm an installation in supported Chromium environments when the manifest relationship is configured correctly. It is not universally available and therefore cannot be the sole source of truth.
+- a normal browser visit cannot create it;
+- it is written only from a real standalone launch or `appinstalled`;
+- `launch.html` writes it only when running standalone, then forwards to `https://myhrfh.com` before installer UI can paint;
+- if `beforeinstallprompt` later fires, the receipt is cleared because the browser has stronger evidence that the app is installable again.
 
-If the API is missing, blocked, throws, or returns no matching relationship, the installer records that result as **unknown**, not **not installed**. An empty relationship result is not treated as proof that the PWA has been removed because legacy installs can outlive manifest/relationship changes.
+A public webpage cannot reliably detect whether a Home Screen/Desktop/Dock icon itself is visible. Deleting a shortcut can leave the PWA installed. Restore shortcut therefore appears only after positive installed-state confirmation and never claims icon visibility was detected.
 
-### Legacy and staging install continuity
+A webpage also cannot programmatically uninstall the PWA. Uninstall opens platform-specific user instructions only and is shown only after positive installed-state confirmation where that guidance applies.
 
-The installer uses a same-origin boolean installation receipt as supplemental evidence for a previously verified install. This is specifically intended to preserve correct desktop behavior when a staging/legacy installation remains installed but the current relationship API cannot match it.
+## iPhone and iPad: current-browser-first
 
-- The receipt key is `myhrfh-install-receipt-v1` and contains only the value `installed`; it contains no identity, authentication, analytics, or user data.
-- A normal browser visit cannot create the receipt.
-- The receipt is written only when the page is actually running in standalone mode or when the browser fires `appinstalled`.
-- `launch.html` records the receipt only when it is running as the installed app, then forwards to `https://myhrfh.com` before installer UI can paint.
-- The installer still waits for `beforeinstallprompt` before trusting a stored receipt. If the browser exposes a real install prompt, that capability is treated as stronger evidence that the app is currently installable and the receipt is cleared.
-- Therefore `getInstalledRelatedApps()` remains a positive-confirmation source, while the receipt provides continuity for verified prior installs without converting an empty API result into a false not-installed conclusion.
+The governing iOS rule is **stay in the current browser**. Safari users remain in Safari; Chrome users remain in Chrome. The installer does not force or prefer a browser handoff. This removes a failure point and respects the browser the user already chose.
 
-### Home-screen icon detection
+The generic Web Share API (`navigator.share()`) is deliberately not used as an installation trigger. A page-created share sheet is not equivalent to the browser's own Add-to-Home-Screen workflow.
 
-A normal public web page cannot reliably inspect whether a PWA icon is currently visible on a user's home screen, desktop, Dock, taskbar, Start menu, or launcher. The app may remain installed after a shortcut is deleted, particularly on desktop.
+### Why calibration exists
 
-Accordingly, the Installed state says that shortcut placement is managed by the device. A **Restore shortcut** management action is offered only when installation is positively confirmed on a supported management platform. It never claims that a home-screen icon has been detected.
+Web content cannot read all Safari/Chrome toolbar settings. Hard-coded pixel coordinates would eventually point at the wrong control. The iOS assistant therefore uses one-tap calibration only when the missing browser setting materially changes the Share location.
 
-### Uninstall
+Calibration is:
 
-A normal web page cannot programmatically uninstall the PWA. The **Uninstall** management action is shown only for a positively confirmed installation on an applicable platform, and it opens accessible instructions rather than performing removal. Removal remains explicitly user-controlled through the browser or operating system.
+- stored only in `sessionStorage` under `myhrfh-ios-install-calibration-v1`;
+- limited to a non-sensitive UI choice such as `top`, `bottom`, `share`, or `more`;
+- free of identity, credentials, analytics, PII, or authentication data;
+- disposable when the browser session ends;
+- user-changeable through **Change toolbar setting**.
 
-## iPhone and iPad visual guidance
+### iPhone Chrome portrait
 
-The iOS manual-install experience uses a branded **confidence-aware guided overlay** rather than relying on text alone or pretending the webpage can inspect browser chrome.
+Chrome can place the address bar at the **top or bottom**, and the page cannot read that preference reliably.
 
-The installer separates guidance into two confidence levels:
+The assistant asks one question:
 
-- **Exact edge cue** — used only where the current device/browser geometry is sufficiently stable to identify the Share-control edge with high confidence.
-- **Region / illustration cue** — used where browser settings can move the control and the page cannot read that setting. The popup shows a miniature browser-toolbar illustration and written guidance instead of pointing to a fake exact coordinate.
+**Where is your Chrome address bar?** — **Top** / **Bottom**
 
-### Safari
+After that selection:
 
-- **iPhone Safari:** use the bottom browser-toolbar **region**, not a single fixed icon coordinate. The guidance says **Tap Share, or More (…) → Share** so it remains valid across Safari tab-layout variants where Share may be directly visible or available through More.
-- **iPad Safari:** use an exact top-right edge cue and a Safari toolbar illustration.
-- After opening the Share sheet, guide the user to **Add to Home Screen**, keep **Open as Web App** enabled when presented, and tap **Add**.
-- A collapsed **Can't find Add to Home Screen?** recovery hint explains **Edit Actions → Add to Home Screen** without adding default clutter.
+- Top → `chrome-address-top`, high-confidence top-right Share coachmark.
+- Bottom → `chrome-address-bottom`, high-confidence bottom-right Share coachmark.
 
-### Chrome
+The coachmark includes a miniature Chrome address bar so the instruction remains understandable even if exact browser chrome spacing changes.
 
-- **iPhone Chrome portrait:** do **not** show an exact top/bottom edge arrow. Chrome allows the user to place the address bar at the top or bottom and normal webpage JavaScript cannot read that preference. Instead, show a miniature Chrome address bar with Share on its right and the instruction **Share is beside your address bar**.
-- **iPhone Chrome landscape:** the address bar is treated as a stable top-toolbar layout; use an exact top-right edge cue plus the toolbar illustration.
-- **iPad Chrome:** use the exact top-right edge cue plus the toolbar illustration.
-- The Chrome install path remains **Share → Add to Home Screen → Add**.
+### iPhone Chrome landscape
 
-### Guidance behavior
+Chrome landscape is treated as a stable top-toolbar layout. No calibration is required; show the high-confidence top-right Share coachmark.
 
-- The page dims behind the HRFH guidance sheet.
-- Exact/region selection is recomputed when device orientation or viewport geometry changes.
-- The enhancement layer is idempotent: an unchanged device/browser/orientation state does not repeatedly rebuild the guide.
-- Reduced-motion users do not receive pulsing guide animation.
-- Instructions remain complete even if browser UI moves in a future release.
+### iPad Chrome
 
-The generic Web Share API (`navigator.share()`) is deliberately **not** used as the installation trigger. A page-level share sheet is not equivalent to the browser's own Share/Add-to-Home-Screen workflow and must not be presented as though it can install the PWA.
+No calibration is required. Show the high-confidence top-right Share coachmark and toolbar illustration.
 
-Web content cannot inspect, highlight, or manipulate Safari/Chrome browser chrome outside the page viewport. Exact-looking cues therefore appear only for high-confidence edge layouts; all other cases use a region marker or miniature toolbar illustration rather than claiming direct access to the actual browser button.
+### iPhone Safari
 
-## Browser and device matrix
+Safari can expose **Share** directly or place sharing behind **More (…)** depending on browser layout/version. The page cannot inspect that setting.
 
-| Environment | Detection / install path | iOS guidance confidence / installed management |
+The assistant asks:
+
+**What do you see in Safari?** — **Share** / **More (…)**
+
+Then:
+
+- Share → `safari-control-share`; guide toward the lower Safari control region and instruct **Tap Share**.
+- More → `safari-control-more`; guide toward the lower Safari control region and instruct **More (…) → Share**.
+
+Safari's next step is **Add to Home Screen**. Keep **Open as Web App** enabled when Apple presents it, then tap **Add**.
+
+A collapsed **Can't find Add to Home Screen?** recovery explains **Edit Actions → Add to Home Screen** without cluttering the default flow.
+
+### iPad Safari
+
+No calibration is required. Use the high-confidence top-right Share coachmark and Safari toolbar illustration, then **Add to Home Screen → Open as Web App → Add** when those controls are presented.
+
+### Other iOS browsers
+
+Use conservative browser-neutral Share → Add to Home Screen guidance. Do not claim an exact toolbar location unless the browser/layout is explicitly supported.
+
+## iOS coachmark rules
+
+- The page may dim behind the HRFH instruction sheet, but it must not pretend to draw over browser chrome.
+- Exact coachmarks are allowed only after the required setting is known or for a stable supported layout.
+- Ambiguous layouts use calibration or a region/illustration cue rather than a fake precise arrow.
+- Coachmarks use safe-area insets for notches, Dynamic Island, and Home Indicator spacing.
+- Orientation and viewport changes recalculate the profile.
+- The enhancement is idempotent: unchanged browser/calibration/orientation state does not repeatedly rebuild the guide.
+- `prefers-reduced-motion` disables nonessential pulse/transition behavior.
+- Instructions remain understandable from text and iconography without relying on color.
+
+## Browser/device matrix
+
+| Environment | Installation path | Installed management |
 | --- | --- | --- |
-| Android Chrome / supported Chromium | `getInstalledRelatedApps()` when available; verified install receipt continuity; otherwise `beforeinstallprompt`; browser-menu fallback | When positively confirmed: Open; Restore shortcut; Uninstall guidance |
-| iPhone Chrome portrait | Chrome-specific Share → Add to Home Screen | Region/illustration only because address bar can be top or bottom; no installed-only Restore/Uninstall in ordinary browser tabs |
-| iPhone Chrome landscape | Chrome-specific Share → Add to Home Screen | Exact top-right edge cue + toolbar illustration; no installed-only Restore/Uninstall in ordinary browser tabs |
-| iPad Chrome | Chrome-specific Share → Add to Home Screen | Exact top-right edge cue + toolbar illustration; no installed-only Restore/Uninstall in ordinary browser tabs |
-| iPhone Safari | Chrome-preferred handoff when available; Safari Share or More → Share → Add to Home Screen | Bottom-toolbar region cue + Safari illustration; no installed-only Restore/Uninstall in ordinary browser tabs |
-| iPad Safari | Chrome-preferred handoff when available; Safari Share → Add to Home Screen | Exact top-right edge cue + Safari illustration; no installed-only Restore/Uninstall in ordinary browser tabs |
-| Windows Chrome | installed-related-app check; verified install receipt continuity; native install prompt | When positively confirmed: Open; `chrome://apps` → Create shortcut; uninstall guidance |
-| Windows Edge | installed-related-app check; verified install receipt continuity; native install prompt | When positively confirmed: Open; `edge://apps` → Create Desktop shortcut; uninstall guidance |
-| macOS Chrome / Edge | installed-related-app check when supported; verified install receipt continuity; native install prompt | When positively confirmed: Open; browser apps/shortcut management and uninstall guidance |
-| macOS Safari | File → Add to Dock | Management controls are not shown unless installation is positively confirmed; otherwise manual application/Dock guidance only |
-| Other / unsupported browser | conservative browser-menu guidance | No false installed-state claim and no installed-only management actions |
-
-Browser UI labels can change between releases. Wording should identify the intent and include common current labels without assuming a single exact menu layout forever.
+| Android Chrome / supported Chromium | installed-state probe/receipt; otherwise native `beforeinstallprompt`; fallback browser guidance | Open + conditional Restore/Uninstall after positive confirmation |
+| iPhone Chrome portrait | current Chrome → one-tap Top/Bottom address-bar calibration → Share → Add to Home Screen | No installed-only actions in ordinary browser tabs unless state is positively confirmed |
+| iPhone Chrome landscape | current Chrome → top-right Share coachmark → Add to Home Screen | Same conservative rule |
+| iPad Chrome | current Chrome → top-right Share coachmark → Add to Home Screen | Same conservative rule |
+| iPhone Safari | current Safari → one-tap Share/More calibration → Share → Add to Home Screen → Open as Web App → Add | Same conservative rule |
+| iPad Safari | current Safari → top-right Share coachmark → Add to Home Screen → Open as Web App → Add | Same conservative rule |
+| Windows Chrome | installed-related-app/receipt; otherwise native prompt | When confirmed: Open, Restore shortcut, Uninstall guidance |
+| Windows Edge | installed-related-app/receipt; otherwise native prompt | When confirmed: Open, Restore shortcut, Uninstall guidance |
+| macOS Chrome/Edge | installed-related-app/receipt where available; native prompt/fallback | When confirmed: Open and applicable management guidance |
+| macOS Safari | File → Add to Dock | No installed-only management unless state is positively confirmed |
+| Other/unsupported | conservative browser guidance | No false installed-state claim |
 
 ## Installation prompt timing
 
-Chromium can dispatch `beforeinstallprompt` after page initialization. The public page therefore waits briefly for the native event before settling on fallback or receipt-based installed guidance. This prevents the page from prematurely showing an installed state when a native install prompt is about to become available and lets the browser invalidate a stale receipt after uninstall.
+Chromium can dispatch `beforeinstallprompt` after initial page load. The page waits for a bounded prompt window before relying on supplemental receipt evidence. If the native prompt appears, it takes precedence and invalidates a stale receipt.
 
 ## Launch behavior
 
-The manifest `start_url` must remain within the manifest scope and on the same origin as the installed PWA. In staging, `launch.html` is a minimal same-origin shell that, when actually running standalone, records the verified install receipt and then redirects to `https://myhrfh.com` in the document head before installer UI can render.
+The manifest `start_url` remains same-origin and inside scope. In staging, `launch.html` is the minimal same-origin entry shell. When actually running standalone it records the verified receipt and redirects to `https://myhrfh.com` before any installer UI can paint.
 
-For production, host the installer and launch route directly under `myhrfh.com`. Prefer a same-origin application route so the installed app opens the intended portal without a GitHub-origin intermediary or browser badge associated with a cross-origin shortcut workflow.
+For production, move this behavior to a deliberately scoped same-origin route on `myhrfh.com` so installed launches do not depend on GitHub Pages and Android/desktop have the strongest chance of producing a full web app rather than a browser-associated shortcut.
 
-## Service worker behavior
+## Service worker contract
 
-The service worker:
+The release worker:
 
+- uses cache identity `myhrfh-installer-v3`;
+- preserves `desktop-installed-state-v2`;
+- declares `ios-current-browser-v1`;
+- declares `ios-guidance-v3` and `ios-calibrated-coachmark-v1`;
+- caches the v2 compatibility stylesheet/script plus `ios-guidance-v3.css`;
 - intercepts only same-origin GET requests;
-- never proxies, caches, or intercepts `myhrfh.com` when it is cross-origin in the staging build;
-- uses **network-first** behavior for navigations so public installer HTML and state logic refresh promptly;
+- never proxies or caches cross-origin `myhrfh.com` in staging;
+- uses network-first navigation freshness;
 - uses cache-first behavior for stable same-origin static assets;
-- claims clients after activation and maintains a bounded app-shell cache;
-- uses release cache identity `myhrfh-installer-v2` for the release candidate;
-- includes explicit `desktop-installed-state-v2`, `ios-guided-overlay-v1`, and `ios-guidance-v2` revision markers;
-- caches the separate `ios-guidance-v2.js` and `ios-guidance-v2.css` enhancement layer;
-- must be versioned/revised whenever install-state behavior or critical UI assets change.
+- removes obsolete release caches on activation;
+- calls `skipWaiting()` and `clients.claim()` for bounded release turnover.
 
 ## Production HTTP headers
 
-Configure these on the final `myhrfh.com` host. Prefer HTTP response headers over HTML-only equivalents.
+Configure these at the final `myhrfh.com` host, preferably as real HTTP response headers:
 
-### Required
-
-- `Strict-Transport-Security: max-age=31536000; includeSubDomains` after confirming every included subdomain is HTTPS-ready.
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains` only after all included subdomains are HTTPS-ready.
 - `X-Content-Type-Options: nosniff`
 - `Referrer-Policy: no-referrer`
-- `Content-Security-Policy` restricted to the minimum origins required by the production portal and installer. The installer itself should need only self-hosted scripts/styles/images plus the deliberate Chrome iOS handoff. Avoid broad `*` sources.
-- `Permissions-Policy` disabling capabilities the installer does not need, such as camera, microphone, geolocation, payment, and USB.
+- `Content-Security-Policy` restricted to the minimum production origins; avoid broad `*` sources.
+- `Permissions-Policy` disabling unneeded capabilities such as camera, microphone, geolocation, payment, and USB.
 
-### Recommended caching
+Recommended cache policy:
 
-- installer HTML and launch shell: revalidate on navigation (`Cache-Control: no-cache` or an equivalent short-lived policy);
-- manifest: short-lived/revalidated so name/icon/start-url corrections propagate;
-- fingerprinted CSS/JS/icons: long-lived immutable caching after production assets use content-hashed filenames;
-- service worker script: revalidate frequently; do not give it an immutable long cache lifetime.
+- installer HTML and launch shell: revalidate on navigation;
+- manifest: short-lived/revalidated;
+- fingerprinted CSS/JS/icons: immutable long cache only after content-hashed production asset naming;
+- service worker: frequent revalidation, never immutable long cache.
 
 ## Search and privacy
 
-The installer is public but operational rather than search content, so the staging/public installer page uses `noindex, nofollow` unless HR for Health deliberately decides the production install route should be indexed.
+The staging installer uses `noindex, nofollow`. Production indexing should be an explicit HRFH decision.
 
-The installer collects no credentials, authentication tokens, form data, analytics, advertising identifiers, or personal information. The install receipt is a same-origin boolean marker only and contains no user-specific data.
+The installer collects no credentials, authentication tokens, form data, analytics, advertising identifiers, or PII. The install receipt is a same-origin boolean. iOS calibration is a session-only browser-layout choice.
 
-## Accessibility requirements
+## Accessibility
 
-- All controls must be keyboard reachable.
-- Visible focus states must remain present.
-- Dialogs must expose a programmatic title and description.
-- The management dialog uses native `<dialog>` semantics where supported and includes a close action.
-- Live status messages use `aria-live` without excessive announcements.
-- Instructions must not rely on color alone; the iOS guidance combines edge/toolbar illustration, numbering, iconography, and text.
-- `prefers-reduced-motion` must disable nonessential animation, including the iOS edge pulse.
-- Text should remain sentence case, concise, and understandable without technical PWA vocabulary where possible.
+- All controls are keyboard reachable with visible focus treatment.
+- Dialogs have programmatic titles/descriptions.
+- Live status uses `aria-live` without excessive announcements.
+- Calibration options are real buttons grouped with accessible labels.
+- Guidance does not depend on color alone.
+- Safe-area layout prevents coachmarks from colliding with device cutouts/indicators.
+- Reduced motion disables nonessential animation.
+- Copy remains concise, sentence case, and understandable without PWA terminology.
 
 ## Failure behavior
 
-- If service-worker registration fails, the page remains usable online and provides a concise refresh/retry message.
-- If installed-state probing fails or returns no matching relationship, use `unknown`; do not infer not-installed.
-- If a verified install receipt exists, wait for the bounded native-install-prompt window before using it as supplemental installed evidence.
-- If `beforeinstallprompt` fires, clear any stored receipt and render the native install state.
-- If Chrome handoff on iOS cannot complete, preserve the Safari fallback.
-- If an iOS toolbar location is not knowable, use region/illustration guidance instead of an exact arrow.
-- If Safari Share is not directly visible, the written **More (…) → Share** path remains complete.
-- If Add to Home Screen is missing from Safari actions, the collapsed **Edit Actions** recovery remains available.
-- If `beforeinstallprompt` never arrives, use the strongest remaining verified evidence or render browser-specific fallback guidance.
-- If the native install is cancelled, return control to the page without claiming success.
-- If an install completes and `appinstalled` fires, write the install receipt, render the Installed state, and show only management actions permitted by the current platform/capability gate.
+- Service-worker failure leaves the online installer usable.
+- Installed-state probe failure or empty relationship result remains `unknown`.
+- A real `beforeinstallprompt` overrides/clears stale receipt evidence.
+- Session storage failure simply causes calibration to be asked again; install guidance remains usable.
+- If the user chose the wrong toolbar calibration, **Change toolbar setting** returns to the one-tap choice.
+- If browser UI changes unexpectedly, the miniature toolbar and written instructions remain the authoritative fallback.
+- Missing Safari Add to Home Screen is handled through collapsed **Edit Actions** recovery.
+- Cancelled native installation returns to the page without claiming success.
+- `appinstalled` writes the receipt and renders only management actions permitted by the capability gate.
 
 ## Security boundaries
 
-- No arbitrary URL redirects: the production destination is fixed to `https://myhrfh.com`.
-- No arbitrary service-worker proxying or cross-origin caching.
+- Fixed production destination: `https://myhrfh.com`; no arbitrary redirect input.
+- No cross-origin service-worker proxy/cache behavior.
 - No credentials, secrets, Salesforce access, or privileged APIs.
-- No attempt to bypass browser/OS install or uninstall consent.
-- No attempt to inspect browser chrome or device launcher contents.
+- No attempt to bypass install/uninstall consent.
+- No browser-chrome or launcher inspection claim.
 - No generic Web Share API masquerading as an installation API.
 - No downloadable configuration profiles, APK sideloading, or native package installation.
 
 ## Automated engineering acceptance
 
-The release workflow must run these checks on the exact candidate commit:
+Every candidate head must pass:
 
 ```text
 node --check install.js
@@ -198,34 +217,35 @@ node --check service-worker.js
 node --test tests/*.mjs
 ```
 
-The behavior suite covers the manifest contract, transparent icons, pre-paint launch behavior, Android/iOS/desktop detection, Chrome-first iOS flow, confidence-aware Safari/Chrome visual guidance, orientation/layout adaptation, idempotent guidance enhancement, Safari Open-as-Web-App/Edit-Actions recovery, relationship-sensitive installed-state triage, verified install-receipt continuity, condition-gated management actions, shortcut restoration, uninstall guidance, service-worker scope/freshness, accessibility hooks, privacy safeguards, and production/security documentation.
+Coverage includes manifest/scope, transparent icons, pre-paint launch, Android/iOS/desktop detection, current-browser iOS behavior, one-tap calibration, session-only calibration privacy, calibrated coachmarks, Safari Share/More and Open-as-Web-App recovery, relationship-sensitive installed-state triage, install-receipt continuity, condition-gated management actions, service-worker scope/freshness, accessibility hooks, and production/security documentation.
 
 ## Production deployment checklist
 
-Before making the public URL the official HRFH install route:
+Before publishing the official HRFH install URL:
 
-1. Serve the installer, manifest, service worker, icons, and launch route from `myhrfh.com` or a deliberately scoped same-origin path.
-2. Replace GitHub Pages-specific manifest IDs/related-app URLs with the production origin.
-3. Review the service-worker scope so it cannot unintentionally control unrelated portal routes.
-4. Configure and verify `Content-Security-Policy`, `Strict-Transport-Security`, `X-Content-Type-Options`, Referrer-Policy, Permissions-Policy, and cache headers.
-5. Verify the destination route requires normal HRFH authentication and the installer does not weaken authentication behavior.
-6. Test clean first-install, already-installed, legacy-installed-with-empty-related-app-result, deleted-shortcut-but-app-still-installed, cancelled-install, full uninstall, and reinstall on each supported platform.
-7. Verify a real standalone launch/appinstalled writes the receipt, a normal browser visit does not, and a later `beforeinstallprompt` clears it after uninstall.
-8. Test **iPhone Safari** with each available tab-layout style; confirm direct Share and More → Share guidance both remain understandable.
-9. Test **iPhone Chrome portrait** with the address bar at both top and bottom; confirm there is no false exact edge arrow and the toolbar illustration remains correct.
-10. Test **iPhone Chrome landscape** and verify the exact top-right cue aligns with the Share-control edge.
-11. Test **iPad Safari and Chrome** and verify the exact top-right cue plus toolbar illustration.
-12. Test Safari's **Open as Web App** path and the **Edit Actions → Add to Home Screen** recovery.
-13. Test iOS with Chrome installed and without Chrome available.
-14. Test Android where Chrome mints a full web app and where the browser falls back to a badged shortcut.
-15. Test Windows Chrome and Edge both before and after deleting only the desktop shortcut.
-16. Test macOS Chrome/Edge and Safari Add to Dock.
-17. Verify Restore shortcut and Uninstall are absent in unknown/manual-install states and present only after positive installed-state confirmation on supported platforms.
-18. Verify keyboard-only use, screen-reader dialog labels, zoom/reflow, and reduced motion.
-19. Confirm no analytics, credentials, PII, generic share-install workaround, or unexpected network requests are introduced.
-20. Run the complete repository validation suite and all browser-script syntax checks on the exact release commit.
-21. Perform a final physical-device acceptance pass before publishing the production install link broadly.
+1. Serve installer, manifest, service worker, icons, and launch route from a deliberately scoped same-origin path on `myhrfh.com`.
+2. Replace GitHub Pages manifest IDs/related-app URLs with the production origin.
+3. Review service-worker scope so unrelated portal routes cannot be controlled accidentally.
+4. Apply and verify CSP, HSTS, nosniff, Referrer-Policy, Permissions-Policy, and cache headers.
+5. Verify normal HRFH authentication remains authoritative.
+6. Test clean install, confirmed install, legacy install with empty relationship result, deleted shortcut while app remains installed, cancelled install, full uninstall, and reinstall.
+7. Verify standalone/appinstalled writes the receipt; normal browser visit does not; later `beforeinstallprompt` clears stale receipt evidence.
+8. Test iPhone Chrome portrait with address bar at **Top** and **Bottom**; verify calibration and coachmark accuracy.
+9. Test iPhone Chrome landscape and iPad Chrome without calibration.
+10. Test iPhone Safari with **Share** directly visible and with **More (…)**; verify calibration and written paths.
+11. Test iPad Safari without calibration.
+12. Test Safari **Open as Web App** and **Edit Actions → Add to Home Screen** recovery.
+13. Verify **Change toolbar setting** safely re-runs calibration.
+14. Rotate portrait/landscape after calibration and confirm guidance recalculates without duplicate UI.
+15. Test Android full-PWA and browser-badged shortcut fallback.
+16. Test Windows Chrome/Edge before and after deleting only the desktop shortcut.
+17. Test macOS Chrome/Edge and Safari Add to Dock.
+18. Verify Restore shortcut and Uninstall remain hidden in unknown/manual-install states and appear only after positive installed-state confirmation on applicable platforms.
+19. Verify keyboard operation, screen reader labels, zoom/reflow, safe areas, and reduced motion.
+20. Confirm no analytics, credentials, PII, generic-share install workaround, or unexpected network calls are introduced.
+21. Run the complete exact-head automated gate.
+22. Complete physical-device acceptance before broad public release.
 
 ## Release decision
 
-The repository can be treated as a production-ready **installer implementation** once all automated checks are green and physical-device acceptance passes. The GitHub Pages deployment remains a staging proof until the same-origin `myhrfh.com` production-host requirements above are completed.
+The repository can be treated as a production-ready **installer implementation** once automated checks and the physical-device matrix pass. GitHub Pages remains staging until the same-origin `myhrfh.com` deployment requirements above are completed.
