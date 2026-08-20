@@ -174,7 +174,7 @@ test('service worker never proxies or caches myHRFH and enforces same origin', a
   assert.match(worker, /\.\/launch\.html/);
 });
 
-test('service worker rotates cache after seamless-launch refinement', async () => {
+test('service worker uses the release cache identity', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-shortcut-test-v8['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v1['"]/);
 });
