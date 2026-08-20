@@ -73,6 +73,7 @@ The service worker:
 - uses **network-first** behavior for navigations so public installer HTML and state logic refresh promptly;
 - uses cache-first behavior for stable same-origin static assets;
 - claims clients after activation and maintains a bounded app-shell cache;
+- uses release cache identity `myhrfh-installer-v1` in the current release candidate;
 - must be versioned/revised whenever install-state behavior or critical UI assets change.
 
 ## Production HTTP headers
@@ -128,6 +129,18 @@ The installer collects no credentials, authentication tokens, form data, analyti
 - No attempt to bypass browser/OS install or uninstall consent.
 - No downloadable configuration profiles, APK sideloading, or native package installation.
 
+## Automated engineering acceptance
+
+The release workflow must run these checks on the exact candidate commit:
+
+```text
+node --check install.js
+node --check service-worker.js
+node --test tests/*.mjs
+```
+
+The behavior suite covers the manifest contract, transparent icons, pre-paint launch behavior, Android/iOS/desktop detection, Chrome-first iOS flow, installed-state triage, shortcut restoration, uninstall guidance, service-worker scope/freshness, accessibility hooks, privacy safeguards, and production/security documentation.
+
 ## Production deployment checklist
 
 Before making the public URL the official HRFH install route:
@@ -144,7 +157,7 @@ Before making the public URL the official HRFH install route:
 10. Test macOS Chrome/Edge and Safari Add to Dock.
 11. Verify keyboard-only use, screen-reader dialog labels, zoom/reflow, and reduced motion.
 12. Confirm no analytics, credentials, PII, or unexpected network requests are introduced.
-13. Run the complete repository validation suite on the exact release commit.
+13. Run the complete repository validation suite and browser-script syntax checks on the exact release commit.
 14. Perform a final physical-device acceptance pass before publishing the production install link broadly.
 
 ## Release decision
