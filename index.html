@@ -73,14 +73,19 @@
 
       <p class="ios-modal-eyebrow">HRFH web app</p>
       <h2 id="ios-modal-title">Add HRFH web app</h2>
-      <p class="ios-modal-copy">Tap Share, then Add to Home Screen.</p>
+      <p id="ios-modal-copy" class="ios-modal-copy">Tap Share, then Add to Home Screen.</p>
 
-      <div class="ios-share-cue" aria-hidden="true">
+      <div id="ios-share-cue" class="ios-share-cue" aria-hidden="true">
         <span class="ios-share-glyph">↑</span>
-        <span>Safari Share</span>
+        <span id="ios-share-label">Safari Share</span>
       </div>
 
-      <p class="ios-modal-note">Then choose <strong>Add to Home Screen</strong> and tap <strong>Add</strong>.</p>
+      <div id="ios-browser-actions" class="ios-browser-actions" hidden>
+        <button id="ios-open-chrome" class="ios-browser-primary" type="button">Open in Google Chrome</button>
+        <button id="ios-use-safari" class="ios-browser-secondary" type="button">Continue in Safari</button>
+      </div>
+
+      <p id="ios-modal-note" class="ios-modal-note">Then choose <strong>Add to Home Screen</strong> and tap <strong>Add</strong>.</p>
     </section>
   </div>
 </body>
