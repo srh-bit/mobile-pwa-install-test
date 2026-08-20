@@ -124,7 +124,7 @@ test('production readiness and security guidance are documented', async () => {
 
   assert.match(readiness, /myhrfh\.com/i);
   assert.match(readiness, /getInstalledRelatedApps/i);
-  assert.match(readiness, /home.?screen icon/i);
+  assert.match(readiness, /Home Screen[^\n]*icon|icon[^\n]*Home Screen/i);
   assert.match(readiness, /coachmark|visual guidance|guided overlay/i);
   assert.match(readiness, /calibrat/i);
   assert.match(readiness, /current browser|stay in/i);
