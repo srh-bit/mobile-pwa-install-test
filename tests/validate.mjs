@@ -12,10 +12,12 @@ async function readManifest() {
 
 function pngMetadata(buffer) {
   assert.equal(buffer.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', 'asset must be a PNG');
+  const colorType = buffer[25];
   return {
     width: buffer.readUInt32BE(16),
     height: buffer.readUInt32BE(20),
-    colorType: buffer[25]
+    colorType,
+    hasTransparency: colorType === 6 || buffer.includes(Buffer.from('tRNS'))
   };
 }
 
@@ -44,10 +46,10 @@ test('manifest uses only local standard HRFH PNG artwork and no maskable tile', 
   assert.ok(!icons.some((icon) => /^https?:/i.test(icon.src)), 'install icons must not depend on an external host');
 });
 
-test('native standard install assets are RGBA branded PNGs', async () => {
+test('native standard install assets are transparent branded PNGs', async () => {
   const assets = [
-    ['icons/icon-192.png', 192, 2500],
-    ['icons/icon-512.png', 512, 5000]
+    ['icons/icon-192.png', 192, 3000],
+    ['icons/icon-512.png', 512, 9000]
   ];
 
   for (const [path, expectedSize, minimumBytes] of assets) {
@@ -58,7 +60,7 @@ test('native standard install assets are RGBA branded PNGs', async () => {
       { width: expectedSize, height: expectedSize },
       `${path} dimensions`
     );
-    assert.equal(metadata.colorType, 6, `${path} must use RGBA color for transparent mark artwork`);
+    assert.equal(metadata.hasTransparency, true, `${path} must preserve transparent background pixels`);
     assert.ok(buffer.length > minimumBytes, `${path} must contain full branded artwork`);
   }
 });
