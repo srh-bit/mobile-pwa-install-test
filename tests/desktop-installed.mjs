@@ -38,6 +38,7 @@ test('empty related-app result is definitive only on Android while desktop remai
 
 test('service worker refreshes the app shell without regressing desktop installed-state detection', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v8['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v9['"]/);
   assert.match(worker, /const BUILD_REVISION = ['"]desktop-installed-state-v2['"]/);
+  assert.match(worker, /const HRFH_ICON_REVISION = ['"]hrfh-transparent-icon-v1['"]/);
 });
