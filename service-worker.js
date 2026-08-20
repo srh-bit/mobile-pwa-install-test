@@ -1,11 +1,8 @@
-const CACHE_NAME = 'myhrfh-installer-v3';
+const CACHE_NAME = 'myhrfh-installer-v4';
 const BUILD_REVISION = 'desktop-installed-state-v2';
 const IOS_MODAL_REVISION = 'ios-install-modal-v1';
 const IOS_BROWSER_REVISION = 'ios-current-browser-v1';
-const IOS_GUIDED_OVERLAY_REVISION = 'ios-guided-overlay-v1';
-const IOS_GUIDANCE_LEGACY_ASSET = 'ios-guidance-v2';
-const IOS_GUIDANCE_REVISION = 'ios-guidance-v3';
-const IOS_CALIBRATION_REVISION = 'ios-calibrated-coachmark-v1';
+const IOS_FINAL_GUIDANCE_REVISION = 'ios-final-guidance-v1';
 const PRODUCTION_REVISION = 'production-readiness-v1';
 const APP_SHELL = [
   './',
