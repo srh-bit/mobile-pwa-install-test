@@ -52,3 +52,10 @@ test('Android installed state provides an intentional reinstall recovery action'
   assert.match(js, /clearInstallReceipt\(\)/);
   assert.match(js, /renderInstallReady\(\)|renderInitialState\(\)/);
 });
+
+test('Android installed-state release rotates the cached shell', async () => {
+  const worker = await read('service-worker.js');
+
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v6['"]/);
+  assert.match(worker, /ANDROID_INSTALL_REVISION\s*=\s*['"]android-installed-state-v1['"]/);
+});
