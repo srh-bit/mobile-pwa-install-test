@@ -42,6 +42,15 @@ test('Android web-only state does not expose instruction-only Restore or Uninsta
   assert.doesNotMatch(availability, /isAndroid\(\)/);
 });
 
+test('desktop browser helpers explicitly exclude Android', async () => {
+  const js = await read('install.js');
+  const chromeDesktop = js.match(/function isChromeDesktop\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
+  const edgeDesktop = js.match(/function isEdgeDesktop\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
+
+  assert.match(chromeDesktop, /!isAndroid\(\)/);
+  assert.match(edgeDesktop, /!isAndroid\(\)/);
+});
+
 test('Android installed state provides an intentional reinstall recovery action', async () => {
   const html = await read('index.html');
   const js = await read('install.js');
