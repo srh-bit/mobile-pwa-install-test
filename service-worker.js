@@ -1,11 +1,10 @@
-const CACHE_NAME = 'myhrfh-installer-v7';
+const CACHE_NAME = 'myhrfh-installer-v8';
 const BUILD_REVISION = 'desktop-installed-state-v2';
-const ANDROID_INSTALL_REVISION = 'android-installed-state-v1';
-const ANDROID_NATIVE_MANAGEMENT_REVISION = 'android-native-management-v1';
+const ANDROID_INSTALL_REVISION = 'android-pwa-recovery-v2';
 const IOS_MODAL_REVISION = 'ios-install-modal-v1';
 const IOS_BROWSER_REVISION = 'ios-current-browser-v1';
 const IOS_FINAL_GUIDANCE_REVISION = 'ios-final-guidance-v2';
-const PRODUCTION_REVISION = 'production-readiness-v1';
+const PRODUCTION_REVISION = 'production-readiness-v2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -14,7 +13,6 @@ const APP_SHELL = [
   './ios-modal.css',
   './ios-guidance-v2.css',
   './ios-guidance-v3.css',
-  './android-native-bridge.js',
   './install.js',
   './ios-guidance-v2.js',
   './manifest.webmanifest',
@@ -23,9 +21,7 @@ const APP_SHELL = [
 ];
 
 function cacheResponse(request, response) {
-  if (!response || response.status !== 200 || response.type !== 'basic') {
-    return response;
-  }
+  if (!response || response.status !== 200 || response.type !== 'basic') return response;
   const copy = response.clone();
   caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
   return response;

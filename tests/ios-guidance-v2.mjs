@@ -9,7 +9,6 @@ test('iOS guidance uses the final direct assistant and accurate action symbols',
   const html = await read('index.html');
   const js = await read('ios-guidance-v2.js');
   const css = await read('ios-guidance-v3.css');
-
   assert.match(html, /ios-guidance-v3\.css/i);
   assert.match(html, /ios-guidance-v2\.js/i);
   assert.match(js, /ios-final-guidance-v2/i);
@@ -21,8 +20,7 @@ test('iOS guidance uses the final direct assistant and accurate action symbols',
   assert.match(js, /function shareSymbol\(/i);
   assert.match(js, /function moreSymbol\(/i);
   assert.match(js, /function addHomeSymbol\(/i);
-  assert.doesNotMatch(js, /navigator\.share\s*\(/i, 'install guidance must not open the generic Web Share sheet');
-
+  assert.doesNotMatch(js, /navigator\.share\s*\(/i);
   assert.match(css, /\.ios-share-symbol/);
   assert.match(css, /\.ios-more-symbol/);
   assert.match(css, /\.ios-add-home-symbol/);
@@ -32,7 +30,6 @@ test('iOS guidance uses the final direct assistant and accurate action symbols',
 
 test('Safari guidance covers direct Share, circled More fallback, and current web-app steps without asking questions', async () => {
   const js = await read('ios-guidance-v2.js');
-
   assert.match(js, /More[^\n]*Share|More.*Share/is);
   assert.match(js, /<circle\s+cx="12"\s+cy="12"\s+r="10"\s+fill="none"/i);
   assert.match(js, /Open as Web App/i);
@@ -44,7 +41,6 @@ test('Safari guidance covers direct Share, circled More fallback, and current we
 
 test('Chrome portrait remains conservative when address bar placement is unknowable', async () => {
   const js = await read('ios-guidance-v2.js');
-
   assert.match(js, /chrome-phone-portrait[\s\S]*edge:\s*null/i);
   assert.match(js, /address bar at the top or bottom/i);
   assert.doesNotMatch(js, /chrome-address-top|chrome-address-bottom/i);
@@ -52,7 +48,6 @@ test('Chrome portrait remains conservative when address bar placement is unknowa
 
 test('iOS final guidance rerenders safely on orientation and viewport changes', async () => {
   const js = await read('ios-guidance-v2.js');
-
   assert.match(js, /orientationchange/i);
   assert.match(js, /visualViewport\?\.addEventListener\(['"]resize['"]/i);
   assert.match(js, /requestAnimationFrame/i);
@@ -60,9 +55,8 @@ test('iOS final guidance rerenders safely on orientation and viewport changes', 
 
 test('release cache includes final iOS guidance assets', async () => {
   const worker = await read('service-worker.js');
-
   assert.match(worker, /ios-guidance-v2\.js/i);
   assert.match(worker, /ios-guidance-v3\.css/i);
   assert.match(worker, /ios-final-guidance-v2/i);
-  assert.match(worker, /myhrfh-installer-v7/i);
+  assert.match(worker, /myhrfh-installer-v8/i);
 });

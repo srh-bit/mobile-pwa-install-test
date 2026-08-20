@@ -52,9 +52,9 @@ test('iPhone guidance stays direct while covering Share and circled More without
   assert.doesNotMatch(js, /navigator\.share\s*\(/i);
 });
 
-test('release cache preserves final iOS guidance in Android native-management v7 release', async () => {
+test('release cache preserves final iOS guidance in PWA-only v8 release', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /myhrfh-installer-v7/i);
+  assert.match(worker, /myhrfh-installer-v8/i);
   assert.match(worker, /ios-final-guidance-v2/i);
-  assert.match(worker, /android-native-management-v1/i);
+  assert.doesNotMatch(worker, /android-native-management/i);
 });

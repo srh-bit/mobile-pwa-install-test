@@ -21,6 +21,7 @@ test('manifest defines a same-origin standalone myHRFH app with a dedicated laun
   assert.equal(manifest.scope, './');
   assert.equal(manifest.display, 'standalone');
   assert.equal(manifest.prefer_related_applications, false);
+  assert.ok((manifest.related_applications ?? []).some((app) => app.platform === 'webapp'));
 });
 
 test('manifest uses only local standard HRFH PNG artwork and no maskable tile', async () => {
@@ -32,7 +33,7 @@ test('manifest uses only local standard HRFH PNG artwork and no maskable tile', 
   assert.ok(!icons.some((icon) => /maskable/i.test(icon.purpose ?? '') || /maskable/i.test(icon.src)));
 });
 
-test('native standard install assets are transparent branded PNGs', async () => {
+test('standard install assets are transparent branded PNGs', async () => {
   for (const [path, expectedSize, minimumBytes] of [['icons/icon-192.png', 192, 3000], ['icons/icon-512.png', 512, 9000]]) {
     const buffer = await readBuffer(path);
     const metadata = pngMetadata(buffer);
@@ -81,13 +82,14 @@ test('install controller detects iOS, Android, Windows, macOS, and desktop Safar
   assert.match(js, /navigator\.userAgentData/);
 });
 
-test('install controller remains capability-first for browser installs and native management', async () => {
+test('install controller remains capability-first for browser installs only', async () => {
   const js = await read('install.js');
   assert.match(js, /beforeinstallprompt/);
   assert.match(js, /renderInstallReady\(\)/);
   assert.match(js, /appinstalled/);
-  assert.match(js, /HRFHAndroidNative/);
+  assert.match(js, /getInstalledRelatedApps/);
   assert.match(js, /\.\/service-worker\.js/);
+  assert.doesNotMatch(js, /HRFHAndroidNative|nativeHasCapability/);
 });
 
 test('iPhone and iPad use direct final guidance without toolbar questions', async () => {
@@ -120,10 +122,10 @@ test('service worker never proxies or caches myHRFH and enforces same origin', a
   assert.match(worker, /url\.origin\s*!==\s*self\.location\.origin/);
 });
 
-test('service worker uses the v7 Android native-management release identity', async () => {
+test('service worker uses the v8 PWA-only recovery identity', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v7['"]/);
-  assert.match(worker, /const ANDROID_INSTALL_REVISION = ['"]android-installed-state-v1['"]/);
-  assert.match(worker, /const ANDROID_NATIVE_MANAGEMENT_REVISION = ['"]android-native-management-v1['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v8['"]/);
+  assert.match(worker, /const ANDROID_INSTALL_REVISION = ['"]android-pwa-recovery-v2['"]/);
   assert.match(worker, /const IOS_FINAL_GUIDANCE_REVISION = ['"]ios-final-guidance-v2['"]/);
+  assert.doesNotMatch(worker, /ANDROID_NATIVE_MANAGEMENT_REVISION|android-native-bridge/);
 });

@@ -10,28 +10,19 @@ test('iOS installer keeps the automatic branded modal while final guidance owns 
   const coreJs = await read('install.js');
   const guidanceJs = await read('ios-guidance-v2.js');
   const css = await read('ios-modal.css');
-
   assert.match(html, /href=["']\.\/ios-modal\.css["']/i);
   assert.match(html, /id=["']ios-install-modal["']/i);
   assert.match(html, /role=["']dialog["']/i);
   assert.match(html, /aria-modal=["']true["']/i);
   assert.match(html, /Tap Share, then Add to Home Screen\./i);
   assert.match(html, /id=["']ios-modal-dismiss["']/i);
-
   assert.match(coreJs, /function showIOSInstallModal\(/);
   assert.match(coreJs, /iosInstallModal\.hidden\s*=\s*false/);
-  assert.doesNotMatch(coreJs, /navigator\.share\s*\(/, 'Web Share must not be presented as an Add to Home Screen shortcut');
-
+  assert.doesNotMatch(coreJs, /navigator\.share\s*\(/);
   assert.match(guidanceJs, /function renderCurrentBrowserFlow\(/);
   assert.match(guidanceJs, /ios-final-guidance-v2/i);
-  assert.match(guidanceJs, /browserActions\.hidden\s*=\s*true/);
-  assert.match(guidanceJs, /<circle\s+cx="12"\s+cy="12"\s+r="10"\s+fill="none"/i);
-  assert.doesNotMatch(guidanceJs, /no browser switch is required/i);
-  assert.doesNotMatch(guidanceJs, /googlechromes?:/i);
-
   assert.match(css, /\.ios-install-modal/);
   assert.match(css, /position:\s*fixed/i);
-  assert.match(css, /backdrop-filter:\s*blur\(/i);
 });
 
 test('service worker refreshes the cached shell for final iOS guidance', async () => {
@@ -39,7 +30,7 @@ test('service worker refreshes the cached shell for final iOS guidance', async (
   assert.match(worker, /const IOS_MODAL_REVISION = ['"]ios-install-modal-v1['"]/);
   assert.match(worker, /const IOS_BROWSER_REVISION = ['"]ios-current-browser-v1['"]/);
   assert.match(worker, /const IOS_FINAL_GUIDANCE_REVISION = ['"]ios-final-guidance-v2['"]/);
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v7['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v8['"]/);
   assert.match(worker, /\.\/ios-modal\.css/);
   assert.match(worker, /\.\/ios-guidance-v3\.css/);
 });

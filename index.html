@@ -30,7 +30,6 @@
   <link rel="stylesheet" href="./ios-modal.css">
   <link rel="stylesheet" href="./ios-guidance-v2.css">
   <link rel="stylesheet" href="./ios-guidance-v3.css">
-  <script src="./android-native-bridge.js" defer></script>
   <script src="./install.js" defer></script>
   <script src="./ios-guidance-v2.js" defer></script>
 </head>
@@ -52,8 +51,7 @@
         <a id="open-button" class="button button-secondary" href="https://myhrfh.com" rel="noopener">Open myHRFH</a>
         <button id="reinstall-button" class="button button-quiet" type="button" hidden>Reinstall</button>
         <div id="installed-actions" class="installed-actions" hidden>
-          <button id="restore-shortcut-button" class="button button-tertiary" type="button" hidden>Restore shortcut</button>
-          <button id="uninstall-button" class="button button-quiet" type="button" hidden>Uninstall</button>
+          <button id="restore-shortcut-button" class="button button-tertiary" type="button" hidden>Restore Home Screen shortcut</button>
         </div>
       </div>
       <p id="status-message" class="status" role="status" aria-live="polite"></p>
@@ -91,7 +89,7 @@
     <div class="management-dialog-inner">
       <button id="management-close" class="management-close" type="button" aria-label="Close">×</button>
       <p class="management-eyebrow">HRFH web app</p>
-      <h2 id="management-title">Manage HRFH web app</h2>
+      <h2 id="management-title">Restore Home Screen shortcut</h2>
       <p id="management-copy" class="management-copy">Follow the steps for this device.</p>
       <ol id="management-steps" class="management-steps"></ol>
       <button id="management-done" class="button button-primary" type="button">Done</button>
