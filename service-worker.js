@@ -1,6 +1,7 @@
 const CACHE_NAME = 'myhrfh-installer-v8';
 const BUILD_REVISION = 'desktop-installed-state-v2';
 const ANDROID_INSTALL_REVISION = 'android-pwa-recovery-v2';
+const ANDROID_UI_REVISION = 'android-installed-ui-v1';
 const IOS_MODAL_REVISION = 'ios-install-modal-v1';
 const IOS_BROWSER_REVISION = 'ios-current-browser-v1';
 const IOS_FINAL_GUIDANCE_REVISION = 'ios-final-guidance-v2';
