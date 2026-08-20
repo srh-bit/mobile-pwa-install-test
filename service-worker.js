@@ -1,4 +1,5 @@
-const CACHE_NAME = 'myhrfh-shortcut-test-v9';
+const CACHE_NAME = 'myhrfh-shortcut-test-v8';
+const BUILD_REVISION = 'desktop-installed-state-v1';
 const APP_SHELL = [
   './',
   './index.html',
