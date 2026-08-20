@@ -134,14 +134,16 @@ test('install controller is capability-first and adapts ready copy for Android a
   assert.match(js, /\.\/service-worker\.js/);
 });
 
-test('iPhone and iPad prioritize Chrome and retain Safari fallback guidance', async () => {
-  const js = await read('install.js');
-  assert.match(js, /Google Chrome is preferred/i);
-  assert.match(js, /Chrome Share/i);
-  assert.match(js, /Safari Share/i);
-  assert.match(js, /Add to Home Screen/i);
-  assert.match(js, /Continue in Safari/i);
-  assert.match(js, /googlechromes:/i);
+test('iPhone and iPad stay in the current browser and calibrate ambiguous layouts', async () => {
+  const guidance = await read('ios-guidance-v2.js');
+  assert.match(guidance, /function renderCurrentBrowserFlow\(\)/);
+  assert.match(guidance, /Stay in \$\{browser\}; no browser switch is required/i);
+  assert.match(guidance, /CALIBRATION_SESSION_KEY/i);
+  assert.match(guidance, /chrome-address-top|chrome-address-bottom/i);
+  assert.match(guidance, /safari-control-share|safari-control-more/i);
+  assert.match(guidance, /Add to Home Screen/i);
+  assert.doesNotMatch(guidance, /googlechromes?:/i);
+  assert.doesNotMatch(guidance, /navigator\.share\s*\(/i);
 });
 
 test('desktop fallbacks distinguish Mac Safari and general desktop browsers', async () => {
@@ -174,8 +176,10 @@ test('service worker never proxies or caches myHRFH and enforces same origin', a
   assert.match(worker, /\.\/launch\.html/);
 });
 
-test('service worker uses the guided release cache identity', async () => {
+test('service worker uses the calibrated iOS v3 release cache identity', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v2['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v3['"]/);
   assert.match(worker, /const IOS_GUIDED_OVERLAY_REVISION = ['"]ios-guided-overlay-v1['"]/);
+  assert.match(worker, /const IOS_GUIDANCE_REVISION = ['"]ios-guidance-v3['"]/);
+  assert.match(worker, /const IOS_CALIBRATION_REVISION = ['"]ios-calibrated-coachmark-v1['"]/);
 });
