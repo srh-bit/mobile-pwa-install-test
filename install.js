@@ -4,6 +4,7 @@ const INSTALL_RECEIPT_KEY = 'myhrfh-install-receipt-v1';
 
 const installButton = document.getElementById('install-button');
 const openButton = document.getElementById('open-button');
+const reinstallButton = document.getElementById('reinstall-button');
 const restoreShortcutButton = document.getElementById('restore-shortcut-button');
 const uninstallButton = document.getElementById('uninstall-button');
 const installedActions = document.getElementById('installed-actions');
@@ -94,12 +95,12 @@ function isDesktopSafari() {
 }
 
 function isEdgeDesktop() {
-  return !isIOS() && /Edg\//i.test(userAgent());
+  return !isIOS() && !isAndroid() && /Edg\//i.test(userAgent());
 }
 
 function isChromeDesktop() {
   const ua = userAgent();
-  return !isIOS() && /Chrome|Chromium/i.test(ua) && !/Edg|OPR/i.test(ua);
+  return !isIOS() && !isAndroid() && /Chrome|Chromium/i.test(ua) && !/Edg|OPR/i.test(ua);
 }
 
 function environment() {
@@ -189,6 +190,7 @@ function resetInstalledActions() {
   installedStateDetected = false;
   card.classList.remove('installed');
   installedActions.hidden = true;
+  reinstallButton.hidden = true;
   restoreShortcutButton.hidden = true;
   uninstallButton.hidden = true;
   openButton.textContent = 'Open myHRFH';
@@ -431,8 +433,7 @@ function getInstalledManagementAvailability({ confirmed = false } = {}) {
     return { restore: false, uninstall: false };
   }
 
-  const supportedInstalledManagement = isAndroid()
-    || isChromeDesktop()
+  const supportedInstalledManagement = isChromeDesktop()
     || isEdgeDesktop()
     || (isMacOS() && isDesktopSafari());
 
@@ -444,10 +445,10 @@ function getInstalledManagementAvailability({ confirmed = false } = {}) {
 }
 
 function setInstalledState(message = 'HRFH web app is installed.', { confirmed = true } = {}) {
-  deferredInstallPrompt = null;
   installedStateDetected = confirmed;
   hideIOSInstallModal();
   installButton.hidden = true;
+  reinstallButton.hidden = !(confirmed && isAndroid());
   card.classList.add('installed');
 
   const management = getInstalledManagementAvailability({ confirmed });
@@ -463,9 +464,15 @@ function setInstalledState(message = 'HRFH web app is installed.', { confirmed =
   openButton.href = './launch.html';
   openButton.classList.remove('button-secondary');
   openButton.classList.add('button-primary');
-  platformContent.innerHTML = management.restore
-    ? `<p><strong>${message}</strong><br>Shortcut placement is managed by your device. If the icon is missing, restore it below.</p>`
-    : `<p><strong>${message}</strong><br>Open the HRFH web app when you are ready.</p>`;
+
+  if (isAndroid()) {
+    platformContent.innerHTML = `<p><strong>${message}</strong><br>Open it now. Use Reinstall only if you removed it from this device.</p>`;
+  } else {
+    platformContent.innerHTML = management.restore
+      ? `<p><strong>${message}</strong><br>Shortcut placement is managed by your device. If the icon is missing, restore it below.</p>`
+      : `<p><strong>${message}</strong><br>Open the HRFH web app when you are ready.</p>`;
+  }
+
   setStatus();
 }
 
@@ -596,7 +603,7 @@ function renderAndroidFallback() {
   resetInstalledActions();
   installButton.hidden = true;
   platformContent.innerHTML = `
-    <p><strong>Add the HRFH web app.</strong><br>Use your browser menu and choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.</p>
+    <p><strong>Install the HRFH web app.</strong><br>Open your browser menu and choose <strong>Install app</strong>.</p>
   `;
   setStatus();
 }
@@ -676,14 +683,13 @@ async function renderInitialState() {
     return;
   }
 
-  if (deferredInstallPrompt || await waitForInstallPrompt()) {
-    clearInstallReceipt();
-    renderInstallReady();
+  if (readInstallReceipt()) {
+    setInstalledState('HRFH web app is already installed.', { confirmed: true });
     return;
   }
 
-  if (readInstallReceipt()) {
-    setInstalledState('HRFH web app is already installed.', { confirmed: true });
+  if (deferredInstallPrompt || await waitForInstallPrompt()) {
+    renderInstallReady();
     return;
   }
 
@@ -693,13 +699,13 @@ async function renderInitialState() {
 
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
-  clearInstallReceipt();
+  deferredInstallPrompt = event;
 
-  if (installedStateDetected) {
+  if (installedStateDetected || readInstallReceipt()) {
+    installButton.hidden = true;
     return;
   }
 
-  deferredInstallPrompt = event;
   applyEnvironmentCopy();
   renderInstallReady();
 });
@@ -727,7 +733,9 @@ installButton.addEventListener('click', async () => {
     const choice = await deferredInstallPrompt.userChoice;
 
     if (choice.outcome === 'accepted') {
-      setStatus('Finishing setup…');
+      writeInstallReceipt();
+      setInstalledState('HRFH web app is installed.', { confirmed: true });
+      setStatus('Installed successfully.');
     } else {
       setStatus('Installation cancelled.');
     }
@@ -736,6 +744,25 @@ installButton.addEventListener('click', async () => {
     installButton.disabled = false;
     installButton.hidden = true;
   }
+});
+
+reinstallButton?.addEventListener('click', () => {
+  if (!isAndroid()) {
+    return;
+  }
+
+  clearInstallReceipt();
+  installedStateDetected = false;
+  reinstallButton.hidden = true;
+
+  if (deferredInstallPrompt) {
+    applyEnvironmentCopy();
+    renderInstallReady();
+    setStatus('Ready to reinstall.');
+    return;
+  }
+
+  window.location.reload();
 });
 
 restoreShortcutButton?.addEventListener('click', showShortcutHelp);
