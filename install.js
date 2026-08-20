@@ -220,7 +220,7 @@ function renderIOSInstructions() {
 
 function getInstalledManagementAvailability({ confirmed = false } = {}) {
   if (!confirmed || isIOS()) return { restore: false };
-  if (isAndroid()) return { restore: true };
+  if (isAndroid()) return { restore: false };
   return {
     restore: isChromeDesktop() || isEdgeDesktop() || (isMacOS() && isDesktopSafari())
   };
@@ -247,7 +247,7 @@ function setInstalledState(message = 'HRFH web app is installed.', { confirmed =
   openButton.classList.add('button-primary');
 
   if (isAndroid()) {
-    platformContent.innerHTML = `<p><strong>${message}</strong><br>Android confirms the PWA is installed. This website cannot inspect whether its Home Screen or launcher icon is still visible. Use Restore Home Screen shortcut if you need the icon back.</p>`;
+    platformContent.innerHTML = '<p><strong>The myHRFH icon was added to your Home Screen.</strong></p>';
   } else if (management.restore) {
     platformContent.innerHTML = `<p><strong>${message}</strong><br>Shortcut placement is managed by your device. If quick access is missing, use Restore shortcut below.</p>`;
   } else {
@@ -285,17 +285,10 @@ function closeManagementDialog() {
 }
 
 function showShortcutHelp() {
-  let copy = 'Shortcut placement is managed by your device.';
+  const copy = 'Shortcut placement is managed by your device.';
   let steps;
 
-  if (isAndroid()) {
-    copy = 'The PWA is installed. This website cannot inspect the Android Home Screen or launcher icon, so Restore uses the safe Android launcher path.';
-    steps = [
-      'Open your app list and find myHRFH.',
-      'Touch and hold myHRFH, then choose Add to Home screen or drag it onto the Home Screen. The wording can vary by launcher.',
-      'If myHRFH is not in your app list, close this dialog and use Reinstall on this page.'
-    ];
-  } else if (isEdgeDesktop()) {
+  if (isEdgeDesktop()) {
     steps = [
       'Open edge://apps in Microsoft Edge.',
       'Find myHRFH and open its app details.',
@@ -321,7 +314,7 @@ function showShortcutHelp() {
     ];
   }
 
-  setManagementContent(isAndroid() ? 'Restore Home Screen shortcut' : 'Restore shortcut', copy, steps);
+  setManagementContent('Restore shortcut', copy, steps);
   showManagementDialog();
 }
 
