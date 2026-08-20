@@ -32,7 +32,8 @@ test('desktop controller detects an already-installed PWA before rendering fallb
   assert.match(js, /if\s*\(deferredInstallPrompt\)\s*\{\s*renderInstallReady\(\)/s);
 });
 
-test('service worker rotates cache after desktop installed-state detection', async () => {
+test('service worker refreshes the app shell for desktop installed-state detection', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-shortcut-test-v9['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-shortcut-test-v8['"]/);
+  assert.match(worker, /const BUILD_REVISION = ['"]desktop-installed-state-v1['"]/);
 });
