@@ -5,7 +5,7 @@ This document defines the production contract for the public HR for Health insta
 ## Governing state model
 
 1. **Running as installed web app** — forward to `https://myhrfh.com` before installer UI paints.
-2. **Installed confirmed** — show Open and only user-controlled shortcut recovery applicable to the platform.
+2. **Installed confirmed** — show Open; Android also shows Reinstall. Do not expose Android Restore or Uninstall controls.
 3. **Installable** — show Chromium's native Install action only when there is no stronger installed evidence.
 4. **Manual install** — show concise browser-specific guidance. Android fallback uses **Install app**; iOS uses Share / Add to Home Screen.
 5. **Unknown** — never claim removal; retain conservative fallback evidence where the browser cannot complete an installed-state probe.
@@ -22,13 +22,17 @@ The manifest declares itself in `related_applications`. On supported Android Chr
 
 This lets refreshes avoid intentionally advertising duplicate installation while still recovering from a genuinely removed PWA when Chrome can provide a definitive self-related-app result.
 
-## Restore Home Screen shortcut
+## Android installed experience
 
 A successful PWA-installed check does not reveal Home Screen placement. A website **cannot inspect, detect, or verify the Android Home Screen/launcher icon or shortcut itself**.
 
-A confirmed installed Android state therefore shows **Restore Home Screen shortcut**. The action is user-controlled guidance: open Android's app list, find myHRFH, touch and hold it, then choose the launcher's Add-to-Home action or drag it onto the Home Screen. If myHRFH is not in the app list, use Reinstall.
+The Android installed UI is therefore intentionally simple:
 
-There is no Uninstall control. The installer is not an Android package manager and does not need removal privileges.
+- **Open HRFH web app**
+- **Reinstall**
+- confirmation card: **The myHRFH icon was added to your Home Screen.**
+
+There is no Android Restore control and no Uninstall control. The installer is not an Android package or launcher manager.
 
 ## iPhone and iPad guidance
 
@@ -52,7 +56,7 @@ Windows Chrome/Edge and supported macOS browsers continue to use positive instal
 
 | Environment | Install path | Installed recovery |
 | --- | --- | --- |
-| Android Chrome/Chromium | self-related PWA probe; native prompt; **Install app** fallback | Open + Restore Home Screen shortcut + Reinstall |
+| Android Chrome/Chromium | self-related PWA probe; native prompt; **Install app** fallback | Open + Reinstall |
 | iPhone/iPad Chrome | Share → Add to Home Screen | Conservative browser guidance |
 | iPhone/iPad Safari | Share or More → Share → Add to Home Screen → Open as Web App → Add | Conservative browser guidance |
 | Windows Chrome/Edge | positive evidence/native prompt | Open + browser/OS shortcut guidance |
@@ -60,7 +64,7 @@ Windows Chrome/Edge and supported macOS browsers continue to use positive instal
 
 ## Service worker contract
 
-The worker uses cache `myhrfh-installer-v8`, declares `android-pwa-recovery-v2`, preserves `desktop-installed-state-v2`, and declares `ios-final-guidance-v2`. It caches only browser shell assets, intercepts same-origin GET requests only, uses network-first navigation freshness, clears obsolete caches, and calls `skipWaiting()` / `clients.claim()`.
+The worker uses cache `myhrfh-installer-v8`, declares `android-pwa-recovery-v2` and `android-installed-ui-v1`, preserves `desktop-installed-state-v2`, and declares `ios-final-guidance-v2`. It caches only browser shell assets, intercepts same-origin GET requests only, uses network-first navigation freshness, clears obsolete caches, and calls `skipWaiting()` / `clients.claim()`.
 
 ## Production HTTP headers
 
@@ -80,7 +84,7 @@ Review service-worker scope before production so unrelated authenticated portal 
 - Installed-state probe errors remain unknown.
 - Supported Android successful empty self-related-app result clears stale receipt and returns to install assessment.
 - `beforeinstallprompt` never clears positive evidence by itself.
-- Missing Home Screen icon cannot be detected by the website; Restore remains optional whenever Android PWA installation is confirmed.
+- Missing Home Screen icon cannot be detected by the website; the Android UI does not claim otherwise.
 - User cancellation of install remains authoritative.
 
 ## Automated engineering acceptance
@@ -100,13 +104,12 @@ node --test tests/*.mjs
 2. Replace GitHub Pages manifest identity/related-app URL with the approved production origin.
 3. Apply and verify CSP/HSTS/nosniff/Referrer-Policy/Permissions-Policy and cache headers.
 4. Verify normal HRFH authentication remains authoritative.
-5. Android Chrome: clean install, accepted receipt, refresh with no duplicate Install, positive self-related-app detection, Home Screen icon removal with PWA retained, Restore guidance, complete PWA removal, and reinstall recovery.
-6. Verify Android launchers used by the organization expose myHRFH in the app list and support long-press/drag or equivalent Add-to-Home behavior.
-7. Android browser fallback: **Install app**, not unverifiable generic bookmark promotion.
-8. iPhone Chrome portrait/landscape and iPad Chrome; iPhone/iPad Safari direct Share and circled More variants; Open-as-Web-App/Edit-Actions recovery.
-9. Desktop Chrome/Edge/Safari installed and shortcut-recovery states.
-10. Verify safe areas, zoom/reflow, keyboard/screen-reader labels, reduced motion, and concise copy.
-11. Run the complete exact-head automated gate after the final code-changing commit.
+5. Android Chrome: clean install, accepted receipt, refresh with no duplicate Install, positive self-related-app detection, concise installed confirmation, complete PWA removal, and reinstall recovery.
+6. Android browser fallback: **Install app**, not unverifiable generic bookmark promotion.
+7. iPhone Chrome portrait/landscape and iPad Chrome; iPhone/iPad Safari direct Share and circled More variants; Open-as-Web-App/Edit-Actions recovery.
+8. Desktop Chrome/Edge/Safari installed and shortcut-recovery states.
+9. Verify safe areas, zoom/reflow, keyboard/screen-reader labels, reduced motion, and concise copy.
+10. Run the complete exact-head automated gate after the final code-changing commit.
 
 ## Release decision
 
