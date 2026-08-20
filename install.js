@@ -1,5 +1,6 @@
 const MYHRFH_URL = 'https://myhrfh.com';
 const INSTALL_PROMPT_WAIT_MS = 1200;
+const INSTALL_RECEIPT_KEY = 'myhrfh-install-receipt-v1';
 
 const installButton = document.getElementById('install-button');
 const openButton = document.getElementById('open-button');
@@ -114,8 +115,33 @@ function isMobileEnvironment() {
   return current === 'ios' || current === 'android';
 }
 
+function readInstallReceipt() {
+  try {
+    return window.localStorage.getItem(INSTALL_RECEIPT_KEY) === 'installed';
+  } catch {
+    return false;
+  }
+}
+
+function writeInstallReceipt() {
+  try {
+    window.localStorage.setItem(INSTALL_RECEIPT_KEY, 'installed');
+  } catch {
+    // Storage can be unavailable in restricted/private contexts; browser capability checks remain authoritative.
+  }
+}
+
+function clearInstallReceipt() {
+  try {
+    window.localStorage.removeItem(INSTALL_RECEIPT_KEY);
+  } catch {
+    // Ignore storage restrictions and continue with browser capability checks.
+  }
+}
+
 async function getInstallationState() {
   if (isStandalone()) {
+    writeInstallReceipt();
     return 'installed';
   }
 
@@ -136,10 +162,11 @@ async function getInstallationState() {
     });
 
     if (installed) {
+      writeInstallReceipt();
       return 'installed';
     }
 
-    return 'not-installed';
+    return 'unknown';
   } catch {
     return 'unknown';
   }
@@ -628,6 +655,7 @@ async function renderInitialState() {
   openButton.href = MYHRFH_URL;
 
   if (isStandalone()) {
+    writeInstallReceipt();
     window.location.replace(MYHRFH_URL);
     return;
   }
@@ -649,7 +677,13 @@ async function renderInitialState() {
   }
 
   if (deferredInstallPrompt || await waitForInstallPrompt()) {
+    clearInstallReceipt();
     renderInstallReady();
+    return;
+  }
+
+  if (readInstallReceipt()) {
+    setInstalledState('HRFH web app is already installed.', { confirmed: true });
     return;
   }
 
@@ -659,6 +693,7 @@ async function renderInitialState() {
 
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
+  clearInstallReceipt();
 
   if (installedStateDetected) {
     return;
@@ -743,6 +778,7 @@ window.addEventListener('resize', () => {
 });
 
 window.addEventListener('appinstalled', () => {
+  writeInstallReceipt();
   setInstalledState('HRFH web app is installed.', { confirmed: true });
   setStatus('Installed successfully.');
 });
