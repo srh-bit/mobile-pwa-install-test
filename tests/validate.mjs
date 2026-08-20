@@ -71,6 +71,13 @@ test('launch shell redirects before installer UI can paint', async () => {
   assert.doesNotMatch(launch, /install-card|platform-content|install-button/i);
 });
 
+test('installer page redirects standalone legacy launches in head before paint', async () => {
+  const html = await read('index.html');
+  const head = html.match(/<head>([\s\S]*?)<\/head>/i)?.[1] ?? '';
+  assert.match(head, /display-mode:\s*standalone/i);
+  assert.match(head, /window\.location\.replace\(['"]https:\/\/myhrfh\.com['"]\)/i);
+});
+
 test('page uses concise sentence-case HRFH web app language', async () => {
   const html = await read('index.html');
   assert.match(html, /rel=["']manifest["'][^>]+href=["']\.\/manifest\.webmanifest["']/i);
