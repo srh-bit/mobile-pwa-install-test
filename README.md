@@ -63,11 +63,13 @@ For the strongest no-intermediary/no-browser-badge production experience, host t
 - fixed `https://myhrfh.com` destination
 - same-origin-only service-worker interception
 - network-first navigation freshness for the installer shell
+- release cache identity `myhrfh-installer-v1`
 - no programmatic uninstall or consent bypass
 - `no-referrer` and staging/public installer `noindex, nofollow` metadata
 - accessible management dialog and visible keyboard focus states
 - reduced-motion support
 - deterministic Node.js regression suite
+- CI syntax checks for browser scripts before behavioral validation
 
 See:
 
@@ -112,9 +114,11 @@ Normal iOS browser tabs cannot reliably confirm whether the web app is already i
 
 ## Validation
 
-GitHub Actions runs the full deterministic Node.js test suite on the feature branch and pull requests:
+GitHub Actions runs direct syntax checks followed by the full deterministic Node.js test suite on the feature branch and pull requests:
 
 ```text
+node --check install.js
+node --check service-worker.js
 node --test tests/*.mjs
 ```
 
