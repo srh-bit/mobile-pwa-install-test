@@ -4,7 +4,7 @@
 
 This repository contains the public HRFH web-app installation experience and an optional HRFH-owned Android TWA package. Both are intentionally least-privilege.
 
-The implementation has no credentials, secrets, analytics, advertising, fingerprinting, PII collection, Salesforce access, arbitrary redirect destination, silent install/uninstall path, or hidden/non-SDK Android API usage.
+No credentials or secrets are embedded. No analytics, advertising, fingerprinting, PII collection, or Salesforce access is performed. The implementation also has no caller-selected redirect destination, silent install/uninstall path, or hidden/non-SDK Android API usage.
 
 The fixed production web origin is `https://myhrfh.com`.
 
