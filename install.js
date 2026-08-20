@@ -161,7 +161,7 @@ function renderIOSInstructions() {
   installButton.hidden = false;
   installButton.textContent = 'Show install steps';
   platformContent.innerHTML = `
-    <p><strong>Add the HRFH web app in two quick steps.</strong><br>Follow the iPhone popup to add it to your home screen.</p>
+    <p><strong>Add the HRFH web app in two quick steps.</strong><br>Tap Share, then Add to Home Screen.</p>
   `;
   setStatus();
   showIOSInstallModal();
