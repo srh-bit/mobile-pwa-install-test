@@ -31,80 +31,76 @@ A public webpage cannot reliably detect whether a Home Screen/Desktop/Dock icon 
 
 A webpage also cannot programmatically uninstall the PWA. Uninstall opens platform-specific user instructions only and is shown only after positive installed-state confirmation where that guidance applies.
 
-## iPhone and iPad: current-browser-first
+## iPhone and iPad: final direct installation guidance
 
-The governing iOS rule is **stay in the current browser**. Safari users remain in Safari; Chrome users remain in Chrome. The installer does not force or prefer a browser handoff. This removes a failure point and respects the browser the user already chose.
+The iOS assistant is intentionally short and does not ask users to identify their toolbar layout. It presents the installation actions directly and uses browser/device/orientation detection only to choose the safest visual cue.
 
 The generic Web Share API (`navigator.share()`) is deliberately not used as an installation trigger. A page-created share sheet is not equivalent to the browser's own Add-to-Home-Screen workflow.
 
-### Why calibration exists
+### iOS action symbols
 
-Web content cannot read all Safari/Chrome toolbar settings. Hard-coded pixel coordinates would eventually point at the wrong control. The iOS assistant therefore uses one-tap calibration only when the missing browser setting materially changes the Share location.
+Instructional icons must match the controls users actually see on iOS and must be rendered as vector artwork rather than placeholder Unicode characters:
 
-Calibration is:
+- **Share** — outlined square with an upward arrow, matching the familiar iOS `square.and.arrow.up` visual.
+- **More** — horizontal ellipsis / three-dot control.
+- **Add to Home Screen** — outlined rounded square containing a plus.
 
-- stored only in `sessionStorage` under `myhrfh-ios-install-calibration-v1`;
-- limited to a non-sensitive UI choice such as `top`, `bottom`, `share`, or `more`;
-- free of identity, credentials, analytics, PII, or authentication data;
-- disposable when the browser session ends;
-- user-changeable through **Change toolbar setting**.
-
-### iPhone Chrome portrait
-
-Chrome can place the address bar at the **top or bottom**, and the page cannot read that preference reliably.
-
-The assistant asks one question:
-
-**Where is your Chrome address bar?** — **Top** / **Bottom**
-
-After that selection:
-
-- Top → `chrome-address-top`, high-confidence top-right Share coachmark.
-- Bottom → `chrome-address-bottom`, high-confidence bottom-right Share coachmark.
-
-The coachmark includes a miniature Chrome address bar so the instruction remains understandable even if exact browser chrome spacing changes.
-
-### iPhone Chrome landscape
-
-Chrome landscape is treated as a stable top-toolbar layout. No calibration is required; show the high-confidence top-right Share coachmark.
-
-### iPad Chrome
-
-No calibration is required. Show the high-confidence top-right Share coachmark and toolbar illustration.
+Do not recreate unrelated Safari/Chrome toolbar controls. In particular, do not show placeholder back arrows, tab-overview squares, fake browser buttons, or approximate text glyphs when they are not required for installation.
 
 ### iPhone Safari
 
-Safari can expose **Share** directly or place sharing behind **More (…)** depending on browser layout/version. The page cannot inspect that setting.
+Safari may expose **Share** directly or may place sharing behind **More (…)** depending on iOS/Safari layout and version. Web content cannot reliably inspect that toolbar preference.
 
-The assistant asks:
+The assistant therefore gives one direct instruction without asking a question:
 
-**What do you see in Safari?** — **Share** / **More (…)**
+**Tap Share. If Share is not visible, tap More (…) then Share.**
 
-Then:
+The visual guide shows the real-style Share and More symbols and may indicate the lower Safari control region, but it must not claim a pixel-perfect position for browser chrome outside the webpage.
 
-- Share → `safari-control-share`; guide toward the lower Safari control region and instruct **Tap Share**.
-- More → `safari-control-more`; guide toward the lower Safari control region and instruct **More (…) → Share**.
+After the Share sheet opens:
 
-Safari's next step is **Add to Home Screen**. Keep **Open as Web App** enabled when Apple presents it, then tap **Add**.
+1. choose **Add to Home Screen**;
+2. keep **Open as Web App** enabled when Apple presents it;
+3. tap **Add**.
 
 A collapsed **Can't find Add to Home Screen?** recovery explains **Edit Actions → Add to Home Screen** without cluttering the default flow.
 
 ### iPad Safari
 
-No calibration is required. Use the high-confidence top-right Share coachmark and Safari toolbar illustration, then **Add to Home Screen → Open as Web App → Add** when those controls are presented.
+Use the high-confidence top-right Share cue and the iOS-style Share symbol. Continue with **Add to Home Screen → Open as Web App → Add** when those controls are presented.
+
+### iPhone Chrome portrait
+
+Chrome can place the address bar at the top or bottom. The webpage cannot reliably read that preference and must not ask the user to report it.
+
+Show the iOS-style Share symbol with the direct instruction:
+
+**Tap Share beside the address bar.**
+
+The supporting copy may explain that Chrome can place the address bar at the top or bottom. Do not display an exact edge pointer in this ambiguous layout.
+
+### iPhone Chrome landscape
+
+Chrome landscape uses a stable top toolbar. A high-confidence top-right Share cue is acceptable, followed by **Add to Home Screen → Add**.
+
+### iPad Chrome
+
+Use the high-confidence top-right Share cue, followed by **Add to Home Screen → Add**.
 
 ### Other iOS browsers
 
-Use conservative browser-neutral Share → Add to Home Screen guidance. Do not claim an exact toolbar location unless the browser/layout is explicitly supported.
+Use conservative Share → Add to Home Screen guidance. Do not claim an exact toolbar location unless the browser/layout is explicitly supported.
 
 ## iOS coachmark rules
 
 - The page may dim behind the HRFH instruction sheet, but it must not pretend to draw over browser chrome.
-- Exact coachmarks are allowed only after the required setting is known or for a stable supported layout.
-- Ambiguous layouts use calibration or a region/illustration cue rather than a fake precise arrow.
+- Stable supported layouts may use an edge cue.
+- Ambiguous layouts use an accurate action symbol and written instruction rather than guessed pixel coordinates.
+- No toolbar-layout questionnaire or calibration storage is permitted in the final flow.
+- Only installation-relevant controls are illustrated.
+- Vector symbols must remain crisp at Retina scaling and zoom.
 - Coachmarks use safe-area insets for notches, Dynamic Island, and Home Indicator spacing.
 - Orientation and viewport changes recalculate the profile.
-- The enhancement is idempotent: unchanged browser/calibration/orientation state does not repeatedly rebuild the guide.
 - `prefers-reduced-motion` disables nonessential pulse/transition behavior.
 - Instructions remain understandable from text and iconography without relying on color.
 
@@ -113,11 +109,11 @@ Use conservative browser-neutral Share → Add to Home Screen guidance. Do not c
 | Environment | Installation path | Installed management |
 | --- | --- | --- |
 | Android Chrome / supported Chromium | installed-state probe/receipt; otherwise native `beforeinstallprompt`; fallback browser guidance | Open + conditional Restore/Uninstall after positive confirmation |
-| iPhone Chrome portrait | current Chrome → one-tap Top/Bottom address-bar calibration → Share → Add to Home Screen | No installed-only actions in ordinary browser tabs unless state is positively confirmed |
-| iPhone Chrome landscape | current Chrome → top-right Share coachmark → Add to Home Screen | Same conservative rule |
-| iPad Chrome | current Chrome → top-right Share coachmark → Add to Home Screen | Same conservative rule |
-| iPhone Safari | current Safari → one-tap Share/More calibration → Share → Add to Home Screen → Open as Web App → Add | Same conservative rule |
-| iPad Safari | current Safari → top-right Share coachmark → Add to Home Screen → Open as Web App → Add | Same conservative rule |
+| iPhone Chrome portrait | Share beside address bar → Add to Home Screen; no exact edge claim | No installed-only actions in ordinary browser tabs unless state is positively confirmed |
+| iPhone Chrome landscape | top-right Share cue → Add to Home Screen | Same conservative rule |
+| iPad Chrome | top-right Share cue → Add to Home Screen | Same conservative rule |
+| iPhone Safari | Share; if absent More (…) → Share → Add to Home Screen → Open as Web App → Add | Same conservative rule |
+| iPad Safari | top-right Share cue → Add to Home Screen → Open as Web App → Add | Same conservative rule |
 | Windows Chrome | installed-related-app/receipt; otherwise native prompt | When confirmed: Open, Restore shortcut, Uninstall guidance |
 | Windows Edge | installed-related-app/receipt; otherwise native prompt | When confirmed: Open, Restore shortcut, Uninstall guidance |
 | macOS Chrome/Edge | installed-related-app/receipt where available; native prompt/fallback | When confirmed: Open and applicable management guidance |
@@ -138,11 +134,11 @@ For production, move this behavior to a deliberately scoped same-origin route on
 
 The release worker:
 
-- uses cache identity `myhrfh-installer-v3`;
+- uses cache identity `myhrfh-installer-v4`;
 - preserves `desktop-installed-state-v2`;
 - declares `ios-current-browser-v1`;
-- declares `ios-guidance-v3` and `ios-calibrated-coachmark-v1`;
-- caches the v2 compatibility stylesheet/script plus `ios-guidance-v3.css`;
+- declares `ios-final-guidance-v1`;
+- caches the required final iOS guidance stylesheet/script;
 - intercepts only same-origin GET requests;
 - never proxies or caches cross-origin `myhrfh.com` in staging;
 - uses network-first navigation freshness;
@@ -171,14 +167,14 @@ Recommended cache policy:
 
 The staging installer uses `noindex, nofollow`. Production indexing should be an explicit HRFH decision.
 
-The installer collects no credentials, authentication tokens, form data, analytics, advertising identifiers, or PII. The install receipt is a same-origin boolean. iOS calibration is a session-only browser-layout choice.
+The installer collects no credentials, authentication tokens, form data, analytics, advertising identifiers, or PII. The install receipt is a same-origin boolean. The final iOS guidance stores no toolbar-layout preference or calibration state.
 
 ## Accessibility
 
 - All controls are keyboard reachable with visible focus treatment.
 - Dialogs have programmatic titles/descriptions.
 - Live status uses `aria-live` without excessive announcements.
-- Calibration options are real buttons grouped with accessible labels.
+- Guidance symbols are decorative where adjacent text carries the action name.
 - Guidance does not depend on color alone.
 - Safe-area layout prevents coachmarks from colliding with device cutouts/indicators.
 - Reduced motion disables nonessential animation.
@@ -189,9 +185,7 @@ The installer collects no credentials, authentication tokens, form data, analyti
 - Service-worker failure leaves the online installer usable.
 - Installed-state probe failure or empty relationship result remains `unknown`.
 - A real `beforeinstallprompt` overrides/clears stale receipt evidence.
-- Session storage failure simply causes calibration to be asked again; install guidance remains usable.
-- If the user chose the wrong toolbar calibration, **Change toolbar setting** returns to the one-tap choice.
-- If browser UI changes unexpectedly, the miniature toolbar and written instructions remain the authoritative fallback.
+- If browser UI changes unexpectedly, the written Share / More / Add to Home Screen instructions remain authoritative.
 - Missing Safari Add to Home Screen is handled through collapsed **Edit Actions** recovery.
 - Cancelled native installation returns to the page without claiming success.
 - `appinstalled` writes the receipt and renders only management actions permitted by the capability gate.
@@ -204,6 +198,7 @@ The installer collects no credentials, authentication tokens, form data, analyti
 - No attempt to bypass install/uninstall consent.
 - No browser-chrome or launcher inspection claim.
 - No generic Web Share API masquerading as an installation API.
+- No iOS toolbar-layout calibration storage.
 - No downloadable configuration profiles, APK sideloading, or native package installation.
 
 ## Automated engineering acceptance
@@ -217,7 +212,7 @@ node --check service-worker.js
 node --test tests/*.mjs
 ```
 
-Coverage includes manifest/scope, transparent icons, pre-paint launch, Android/iOS/desktop detection, current-browser iOS behavior, one-tap calibration, session-only calibration privacy, calibrated coachmarks, Safari Share/More and Open-as-Web-App recovery, relationship-sensitive installed-state triage, install-receipt continuity, condition-gated management actions, service-worker scope/freshness, accessibility hooks, and production/security documentation.
+Coverage includes manifest/scope, transparent icons, pre-paint launch, Android/iOS/desktop detection, final direct iOS guidance, accurate Share/More/Add-to-Home-Screen symbols, Safari Share/More and Open-as-Web-App recovery, relationship-sensitive installed-state triage, install-receipt continuity, condition-gated management actions, service-worker scope/freshness, accessibility hooks, and production/security documentation.
 
 ## Production deployment checklist
 
@@ -230,19 +225,19 @@ Before publishing the official HRFH install URL:
 5. Verify normal HRFH authentication remains authoritative.
 6. Test clean install, confirmed install, legacy install with empty relationship result, deleted shortcut while app remains installed, cancelled install, full uninstall, and reinstall.
 7. Verify standalone/appinstalled writes the receipt; normal browser visit does not; later `beforeinstallprompt` clears stale receipt evidence.
-8. Test iPhone Chrome portrait with address bar at **Top** and **Bottom**; verify calibration and coachmark accuracy.
-9. Test iPhone Chrome landscape and iPad Chrome without calibration.
-10. Test iPhone Safari with **Share** directly visible and with **More (…)**; verify calibration and written paths.
-11. Test iPad Safari without calibration.
+8. Test iPhone Chrome portrait with the address bar at the top and bottom; verify the same direct Share guidance remains accurate without asking the user a question.
+9. Test iPhone Chrome landscape and iPad Chrome with the top-right Share cue.
+10. Test iPhone Safari layouts with Share directly visible and with More (…) required; verify both are covered simultaneously by the direct guidance.
+11. Test iPad Safari top-right Share guidance.
 12. Test Safari **Open as Web App** and **Edit Actions → Add to Home Screen** recovery.
-13. Verify **Change toolbar setting** safely re-runs calibration.
-14. Rotate portrait/landscape after calibration and confirm guidance recalculates without duplicate UI.
+13. Confirm Share, More, and Add-to-Home-Screen vector symbols visually match current iOS controls at 100%, 200% zoom, and Retina device scaling.
+14. Rotate portrait/landscape and confirm guidance recalculates without duplicate UI.
 15. Test Android full-PWA and browser-badged shortcut fallback.
 16. Test Windows Chrome/Edge before and after deleting only the desktop shortcut.
 17. Test macOS Chrome/Edge and Safari Add to Dock.
 18. Verify Restore shortcut and Uninstall remain hidden in unknown/manual-install states and appear only after positive installed-state confirmation on applicable platforms.
 19. Verify keyboard operation, screen reader labels, zoom/reflow, safe areas, and reduced motion.
-20. Confirm no analytics, credentials, PII, generic-share install workaround, or unexpected network calls are introduced.
+20. Confirm no analytics, credentials, PII, generic-share install workaround, toolbar questionnaire, or unexpected network calls are introduced.
 21. Run the complete exact-head automated gate.
 22. Complete physical-device acceptance before broad public release.
 
