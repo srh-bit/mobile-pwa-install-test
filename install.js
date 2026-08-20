@@ -21,6 +21,11 @@ const iosBrowserActions = document.getElementById('ios-browser-actions');
 const iosOpenChrome = document.getElementById('ios-open-chrome');
 const iosUseSafari = document.getElementById('ios-use-safari');
 const iosModalNote = document.getElementById('ios-modal-note');
+const iosToolbarGuide = document.getElementById('ios-toolbar-guide');
+const iosGuideSpotlight = document.getElementById('ios-guide-spotlight');
+const iosGuideArrow = document.getElementById('ios-guide-arrow');
+const iosGuideStepOne = document.getElementById('ios-guide-step-one');
+const iosGuideStepTwo = document.getElementById('ios-guide-step-two');
 const managementDialog = document.getElementById('management-dialog');
 const managementTitle = document.getElementById('management-title');
 const managementCopy = document.getElementById('management-copy');
@@ -32,6 +37,7 @@ let deferredInstallPrompt = null;
 let installedStateDetected = false;
 let iosModalPreviousFocus = null;
 let chromeHandoffTimer = null;
+let iosGuideBrowser = null;
 
 function userAgent() {
   return navigator.userAgent || '';
@@ -45,12 +51,16 @@ function isStandalone() {
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 }
 
+function isIPad() {
+  const ua = userAgent();
+  return /iPad/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+}
+
 function isIOS() {
   const ua = userAgent();
   const platform = platformName();
   const classicIOS = /iPad|iPhone|iPod/i.test(ua) || /iPad|iPhone|iPod/i.test(platform);
-  const desktopModeIPad = /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
-  return classicIOS || desktopModeIPad;
+  return classicIOS || isIPad();
 }
 
 function isIOSChrome() {
@@ -171,7 +181,52 @@ function applyEnvironmentCopy() {
   introCopy.textContent = 'Your HR for Health portal, ready from this computer.';
 }
 
-function setIOSModalContent({ title, copy, shareLabel = '', note = '', showShare = true, showBrowserActions = false }) {
+function configureIOSGuidance({ show = true, browser = null } = {}) {
+  if (!iosInstallModal || !iosToolbarGuide) {
+    return;
+  }
+
+  iosInstallModal.classList.remove(
+    'ios-guide-chrome',
+    'ios-guide-safari',
+    'ios-guide-top',
+    'ios-guide-bottom',
+    'ios-guide-ipad'
+  );
+
+  if (!show) {
+    iosToolbarGuide.hidden = true;
+    iosGuideBrowser = null;
+    return;
+  }
+
+  iosGuideBrowser = browser || (isIOSChrome() ? 'chrome' : 'safari');
+  const landscape = window.matchMedia('(orientation: landscape)').matches;
+  const topGuide = isIPad() || landscape || iosGuideBrowser === 'chrome';
+
+  iosToolbarGuide.hidden = false;
+  iosInstallModal.classList.add(iosGuideBrowser === 'chrome' ? 'ios-guide-chrome' : 'ios-guide-safari');
+  iosInstallModal.classList.add(topGuide ? 'ios-guide-top' : 'ios-guide-bottom');
+
+  if (isIPad()) {
+    iosInstallModal.classList.add('ios-guide-ipad');
+  }
+
+  iosGuideStepOne.textContent = 'Tap Share';
+  iosGuideStepTwo.textContent = 'Add to Home Screen';
+  iosGuideArrow.textContent = topGuide ? '↗' : '↘';
+  iosGuideSpotlight.setAttribute('aria-label', `${iosGuideBrowser} Share area`);
+}
+
+function setIOSModalContent({
+  title,
+  copy,
+  shareLabel = '',
+  note = '',
+  showShare = true,
+  showBrowserActions = false,
+  guideBrowser = null
+}) {
   if (!iosInstallModal) {
     return;
   }
@@ -182,6 +237,7 @@ function setIOSModalContent({ title, copy, shareLabel = '', note = '', showShare
   iosShareCue.hidden = !showShare;
   iosBrowserActions.hidden = !showBrowserActions;
   iosModalNote.innerHTML = note;
+  configureIOSGuidance({ show: showShare, browser: guideBrowser });
 }
 
 function showIOSInstallModal(focusTarget = iosModalDismiss) {
@@ -206,6 +262,7 @@ function hideIOSInstallModal() {
   iosInstallModal.classList.remove('is-visible');
   document.body.classList.remove('ios-modal-open');
   iosInstallModal.hidden = true;
+  configureIOSGuidance({ show: false });
 
   if (iosModalPreviousFocus instanceof HTMLElement) {
     iosModalPreviousFocus.focus({ preventScroll: true });
@@ -237,7 +294,8 @@ function renderIOSChromeInstructions() {
     title: 'Add HRFH web app',
     copy: 'Tap Share, then Add to Home Screen.',
     shareLabel: 'Chrome Share',
-    note: 'Then choose <strong>Add to Home Screen</strong> and tap <strong>Add</strong>.'
+    note: 'Use the highlighted Chrome control, then choose <strong>Add to Home Screen</strong>.',
+    guideBrowser: 'chrome'
   });
   setStatus();
   showIOSInstallModal();
@@ -271,7 +329,8 @@ function renderIOSSafariInstructions() {
     title: 'Add HRFH web app',
     copy: 'Tap Share, then Add to Home Screen.',
     shareLabel: 'Safari Share',
-    note: 'Then choose <strong>Add to Home Screen</strong> and tap <strong>Add</strong>.'
+    note: 'Use the highlighted Safari control, then choose <strong>Add to Home Screen</strong>.',
+    guideBrowser: 'safari'
   });
   setStatus();
   showIOSInstallModal();
@@ -340,24 +399,46 @@ function attemptChromeHandoff() {
   window.location.href = chromeURL;
 }
 
-function setInstalledState(message = 'HRFH web app is installed.') {
+function getInstalledManagementAvailability({ confirmed = false } = {}) {
+  if (!confirmed || isIOS()) {
+    return { restore: false, uninstall: false };
+  }
+
+  const supportedInstalledManagement = isAndroid()
+    || isChromeDesktop()
+    || isEdgeDesktop()
+    || (isMacOS() && isDesktopSafari());
+
+  if (!supportedInstalledManagement) {
+    return { restore: false, uninstall: false };
+  }
+
+  return { restore: true, uninstall: true };
+}
+
+function setInstalledState(message = 'HRFH web app is installed.', { confirmed = true } = {}) {
   deferredInstallPrompt = null;
-  installedStateDetected = true;
+  installedStateDetected = confirmed;
   hideIOSInstallModal();
   installButton.hidden = true;
   card.classList.add('installed');
-  installedActions.hidden = false;
-  restoreShortcutButton.hidden = false;
-  uninstallButton.hidden = false;
+
+  const management = getInstalledManagementAvailability({ confirmed });
+  restoreShortcutButton.hidden = !management.restore;
+  uninstallButton.hidden = !management.uninstall;
+  installedActions.hidden = !(management.restore || management.uninstall);
+
   pageTitle.textContent = 'HRFH web app is installed';
-  introCopy.textContent = 'Open it now or manage it on this device.';
+  introCopy.textContent = management.restore || management.uninstall
+    ? 'Open it now or manage it on this device.'
+    : 'Open the HRFH web app from this device.';
   openButton.textContent = 'Open HRFH web app';
   openButton.href = './launch.html';
   openButton.classList.remove('button-secondary');
   openButton.classList.add('button-primary');
-  platformContent.innerHTML = `
-    <p><strong>${message}</strong><br>Shortcut placement is managed by your device. If the icon is missing, restore it below.</p>
-  `;
+  platformContent.innerHTML = management.restore
+    ? `<p><strong>${message}</strong><br>Shortcut placement is managed by your device. If the icon is missing, restore it below.</p>`
+    : `<p><strong>${message}</strong><br>Open the HRFH web app when you are ready.</p>`;
   setStatus();
 }
 
@@ -563,7 +644,7 @@ async function renderInitialState() {
 
   const installationState = await getInstallationState();
   if (installationState === 'installed') {
-    setInstalledState('HRFH web app is already installed.');
+    setInstalledState('HRFH web app is already installed.', { confirmed: true });
     return;
   }
 
@@ -648,8 +729,21 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+const orientationQuery = window.matchMedia('(orientation: landscape)');
+orientationQuery.addEventListener?.('change', () => {
+  if (iosInstallModal && !iosInstallModal.hidden && iosGuideBrowser) {
+    configureIOSGuidance({ show: true, browser: iosGuideBrowser });
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (iosInstallModal && !iosInstallModal.hidden && iosGuideBrowser) {
+    configureIOSGuidance({ show: true, browser: iosGuideBrowser });
+  }
+});
+
 window.addEventListener('appinstalled', () => {
-  setInstalledState();
+  setInstalledState('HRFH web app is installed.', { confirmed: true });
   setStatus('Installed successfully.');
 });
 
