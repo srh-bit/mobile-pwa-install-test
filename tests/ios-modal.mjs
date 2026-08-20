@@ -8,8 +8,9 @@ const read = (path) => readFile(fileUrl(path), 'utf8');
 test('iOS installer uses an automatic branded modal instead of inline setup steps', async () => {
   const html = await read('index.html');
   const js = await read('install.js');
-  const css = await read('styles.css');
+  const css = await read('ios-modal.css');
 
+  assert.match(html, /href=["']\.\/ios-modal\.css["']/i);
   assert.match(html, /id=["']ios-install-modal["']/i);
   assert.match(html, /role=["']dialog["']/i);
   assert.match(html, /aria-modal=["']true["']/i);
@@ -30,4 +31,5 @@ test('iOS installer uses an automatic branded modal instead of inline setup step
 test('service worker refreshes the cached shell for the iOS modal build', async () => {
   const worker = await read('service-worker.js');
   assert.match(worker, /const BUILD_REVISION = ['"]ios-install-modal-v1['"]/);
+  assert.match(worker, /\.\/ios-modal\.css/);
 });
