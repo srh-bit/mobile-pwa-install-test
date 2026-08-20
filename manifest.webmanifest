@@ -1,7 +1,8 @@
 {
+  "id": "./",
   "name": "myHRFH",
   "short_name": "myHRFH",
-  "description": "Quick mobile access to the HR for Health client portal.",
+  "description": "Quick access to the HR for Health client portal.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
