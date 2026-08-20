@@ -28,22 +28,22 @@ function setStatus(message = '') {
   statusMessage.textContent = message;
 }
 
-function setInstalledState(message = 'Test shortcut installed.') {
+function setInstalledState(message = 'myHRFH was added to your Home Screen.') {
   deferredInstallPrompt = null;
   installButton.hidden = true;
   card.classList.add('installed');
-  openButton.textContent = 'Continue to myHRFH';
+  openButton.textContent = 'Open myHRFH';
   openButton.href = MYHRFH_URL;
   platformContent.innerHTML = `
-    <p><strong>${message}</strong><br>The shortcut is installed. Launch it from your Home Screen to open myhrfh.com directly.</p>
+    <p><strong>${message}</strong><br>Tap the myHRFH icon from your Home Screen anytime for one-tap access.</p>
   `;
 }
 
 function renderIOSInstructions() {
   installButton.hidden = true;
   const safariLead = isIOSSafari()
-    ? 'Safari requires three quick taps:'
-    : 'Open this page in Safari first, then use these three quick taps:';
+    ? 'Add myHRFH in three quick steps:'
+    : 'Open this page in Safari first, then follow these steps:';
 
   platformContent.innerHTML = `
     <p class="platform-lead">${safariLead}</p>
@@ -63,15 +63,15 @@ function renderIOSInstructions() {
     </ol>
   `;
 
-  setStatus(isIOSSafari() ? 'Ready for the iPhone/iPad test.' : 'Safari is required for the iOS home-screen test.');
+  setStatus(isIOSSafari() ? 'Ready to add myHRFH.' : 'Safari is required to add the iPhone or iPad shortcut.');
 }
 
 function renderFallback() {
   platformContent.innerHTML = `
-    <p>Your browser has not exposed its install prompt yet. On Android, use Chrome's browser menu and choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.</p>
+    <p><strong>Add myHRFH from your browser menu.</strong><br>On Android, choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.</p>
   `;
   installButton.hidden = true;
-  setStatus('You can still open myHRFH directly below.');
+  setStatus('You can also open myHRFH directly below.');
 }
 
 function renderInitialState() {
@@ -95,9 +95,9 @@ window.addEventListener('beforeinstallprompt', (event) => {
   deferredInstallPrompt = event;
   installButton.hidden = false;
   platformContent.innerHTML = `
-    <p><strong>Your browser is ready.</strong><br>Tap Install shortcut, confirm the browser prompt, and the test icon will be added to your phone.</p>
+    <p><strong>Your phone is ready.</strong><br>Tap <strong>Add to Home Screen</strong> below, then confirm the browser prompt.</p>
   `;
-  setStatus('Android install prompt is available.');
+  setStatus('One more tap and myHRFH will be on your Home Screen.');
 });
 
 installButton.addEventListener('click', async () => {
@@ -107,16 +107,16 @@ installButton.addEventListener('click', async () => {
   }
 
   installButton.disabled = true;
-  setStatus('Opening the browser install prompt…');
+  setStatus('Opening your browser’s install prompt…');
 
   try {
     await deferredInstallPrompt.prompt();
     const choice = await deferredInstallPrompt.userChoice;
 
     if (choice.outcome === 'accepted') {
-      setStatus('Install accepted. Your browser is finishing the shortcut setup.');
+      setStatus('Great — your phone is finishing the setup.');
     } else {
-      setStatus('Install cancelled. You can try again when the browser offers the prompt.');
+      setStatus('Setup cancelled. You can add myHRFH whenever you’re ready.');
     }
   } finally {
     deferredInstallPrompt = null;
@@ -126,14 +126,14 @@ installButton.addEventListener('click', async () => {
 });
 
 window.addEventListener('appinstalled', () => {
-  setInstalledState('The test shortcut was installed successfully.');
-  setStatus('Installed. Launch it from your Home Screen to open myHRFH directly.');
+  setInstalledState();
+  setStatus('Added successfully. Launch myHRFH from your Home Screen.');
 });
 
 window.addEventListener('load', () => {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./service-worker.js').catch(() => {
-      setStatus('Install page loaded, but offline support could not be registered.');
+      setStatus('The page is ready, but offline support could not be registered.');
     });
   }
 });
