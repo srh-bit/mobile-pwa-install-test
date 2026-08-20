@@ -26,32 +26,34 @@ test('installed state exposes management actions only through explicit capabilit
   assert.doesNotMatch(js, /navigator\.[A-Za-z]*uninstall\s*\(/i, 'public web pages must not pretend they can uninstall a PWA');
 });
 
-test('iOS guidance uses an automatic visual toolbar-edge walkthrough', async () => {
+test('iOS guidance uses a branded modal plus calibrated coachmarks', async () => {
   const html = await read('index.html');
-  const js = await read('install.js');
-  const css = await read('ios-modal.css');
+  const coreJs = await read('install.js');
+  const guidanceJs = await read('ios-guidance-v2.js');
+  const modalCss = await read('ios-modal.css');
+  const v3Css = await read('ios-guidance-v3.css');
 
   assert.match(html, /id=["']ios-toolbar-guide["']/i);
-  assert.match(html, /id=["']ios-guide-spotlight["']/i);
-  assert.match(html, /id=["']ios-guide-arrow["']/i);
   assert.match(html, /id=["']ios-guide-step-one["']/i);
   assert.match(html, /id=["']ios-guide-step-two["']/i);
   assert.match(html, />Tap Share</i);
   assert.match(html, />Add to Home Screen</i);
 
-  assert.match(js, /function configureIOSGuidance\(/);
-  assert.match(js, /function isIPad\(\)/);
-  assert.match(js, /orientation:\s*landscape/i);
-  assert.match(js, /ios-guide-chrome/);
-  assert.match(js, /ios-guide-safari/);
-  assert.match(js, /ios-guide-top|ios-guide-bottom/);
-  assert.match(js, /showIOSInstallModal/);
+  assert.match(coreJs, /function isIPad\(\)/);
+  assert.match(coreJs, /showIOSInstallModal/);
 
-  assert.match(css, /\.ios-toolbar-guide/);
-  assert.match(css, /\.ios-guide-spotlight/);
-  assert.match(css, /\.ios-guide-arrow/);
-  assert.match(css, /backdrop-filter:\s*blur/i);
-  assert.match(css, /@keyframes\s+ios-guide-pulse/i);
+  assert.match(guidanceJs, /function guidanceProfile\(/);
+  assert.match(guidanceJs, /function needsCalibration\(/);
+  assert.match(guidanceJs, /function buildCalibration\(/);
+  assert.match(guidanceJs, /sessionStorage/i);
+  assert.match(guidanceJs, /chrome-address-top|chrome-address-bottom/i);
+  assert.match(guidanceJs, /safari-control-share|safari-control-more/i);
+
+  assert.match(modalCss, /\.ios-install-modal/);
+  assert.match(modalCss, /backdrop-filter:\s*blur/i);
+  assert.match(v3Css, /\.ios-v3-coachmark/);
+  assert.match(v3Css, /env\(safe-area-inset-/i);
+  assert.match(v3Css, /prefers-reduced-motion/i);
 });
 
 test('installation probing confirms installed state and keeps empty relationship results unknown', async () => {
@@ -94,17 +96,22 @@ test('uninstall guidance is platform-aware and user-controlled', async () => {
 
 test('public installer includes privacy and indexing safeguards', async () => {
   const html = await read('index.html');
+  const guidanceJs = await read('ios-guidance-v2.js');
 
   assert.match(html, /name=["']referrer["'][^>]+content=["']no-referrer["']/i);
   assert.match(html, /name=["']robots["'][^>]+content=["']noindex,\s*nofollow["']/i);
   assert.match(html, /aria-describedby=["']management-copy["']/i);
+  assert.match(guidanceJs, /sessionStorage/i);
+  assert.doesNotMatch(guidanceJs, /localStorage[^\n]*calibration/i);
 });
 
-test('service worker uses production navigation freshness and a release cache identity', async () => {
+test('service worker uses production navigation freshness and the v3 release cache identity', async () => {
   const worker = await read('service-worker.js');
 
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v2['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v3['"]/);
   assert.match(worker, /ios-guided-overlay-v1/i);
+  assert.match(worker, /ios-guidance-v3/i);
+  assert.match(worker, /ios-calibrated-coachmark-v1/i);
   assert.match(worker, /production-readiness-v1/i);
   assert.match(worker, /request\.mode\s*===\s*['"]navigate['"]/);
   assert.match(worker, /fetch\(request\)[\s\S]*caches\.match\(request\)/s);
@@ -118,7 +125,9 @@ test('production readiness and security guidance are documented', async () => {
   assert.match(readiness, /myhrfh\.com/i);
   assert.match(readiness, /getInstalledRelatedApps/i);
   assert.match(readiness, /home.?screen icon/i);
-  assert.match(readiness, /visual guidance|guided overlay/i);
+  assert.match(readiness, /coachmark|visual guidance|guided overlay/i);
+  assert.match(readiness, /calibrat/i);
+  assert.match(readiness, /current browser|stay in/i);
   assert.match(readiness, /management actions/i);
   assert.match(readiness, /uninstall/i);
   assert.match(readiness, /Content-Security-Policy/i);
