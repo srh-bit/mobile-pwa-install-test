@@ -67,7 +67,7 @@ test('production contract documents current-browser-first and calibrated iOS gui
 
   assert.match(docs, /stay in|current browser/i);
   assert.match(docs, /calibrat/i);
-  assert.match(docs, /Chrome[^\n]*(top|bottom)[^\n]*address bar/i);
+  assert.match(docs, /Chrome[^\n]*address bar[^\n]*(top|bottom)|(top|bottom)[^\n]*Chrome[^\n]*address bar/i);
   assert.match(docs, /Safari[^\n]*(Share|More)/i);
   assert.match(docs, /session/i);
 });
