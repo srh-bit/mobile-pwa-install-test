@@ -54,13 +54,17 @@ test('iOS guidance uses an automatic visual toolbar-edge walkthrough', async () 
   assert.match(css, /@keyframes\s+ios-guide-pulse/i);
 });
 
-test('installation probing distinguishes installed, not-installed, and unknown instead of guessing', async () => {
+test('installation probing confirms installed state and keeps empty relationship results unknown', async () => {
   const js = await read('install.js');
+  const stateFunction = js.match(/async function getInstallationState\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
 
   assert.match(js, /async function getInstallationState\(\)/);
-  assert.match(js, /return ['"]installed['"]/);
-  assert.match(js, /return ['"]not-installed['"]/);
-  assert.match(js, /return ['"]unknown['"]/);
+  assert.match(stateFunction, /return ['"]installed['"]/);
+  assert.match(stateFunction, /return ['"]unknown['"]/);
+  assert.doesNotMatch(stateFunction, /return ['"]not-installed['"]/, 'an empty relationship result is not definitive proof of uninstall');
+  assert.match(js, /INSTALL_RECEIPT_KEY/);
+  assert.match(js, /function readInstallReceipt\(\)/);
+  assert.match(js, /beforeinstallprompt[\s\S]*clearInstallReceipt\(\)/s);
   assert.match(js, /INSTALL_PROMPT_WAIT_MS/);
   assert.match(js, /Checking this device/i);
   assert.doesNotMatch(js, /async function isPWAInstalled\(\)/);
