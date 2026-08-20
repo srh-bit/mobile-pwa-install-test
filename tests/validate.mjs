@@ -48,8 +48,8 @@ test('install controller targets myHRFH and supports Android and iOS flows', asy
 
 test('manifest does not attempt a cross-origin myHRFH start_url or scope', async () => {
   const manifest = await readManifest();
-  assert.notMatch(manifest.start_url, /myhrfh\.com/i);
-  assert.notMatch(manifest.scope, /myhrfh\.com/i);
+  assert.doesNotMatch(manifest.start_url, /myhrfh\.com/i);
+  assert.doesNotMatch(manifest.scope, /myhrfh\.com/i);
 });
 
 test('service worker never proxies or caches myHRFH and enforces same origin', async () => {
