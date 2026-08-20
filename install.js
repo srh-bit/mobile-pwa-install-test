@@ -9,10 +9,19 @@ const introCopy = document.getElementById('intro-copy');
 const card = document.querySelector('.install-card');
 const iosInstallModal = document.getElementById('ios-install-modal');
 const iosModalDismiss = document.getElementById('ios-modal-dismiss');
+const iosModalTitle = document.getElementById('ios-modal-title');
+const iosModalCopy = document.getElementById('ios-modal-copy');
+const iosShareCue = document.getElementById('ios-share-cue');
+const iosShareLabel = document.getElementById('ios-share-label');
+const iosBrowserActions = document.getElementById('ios-browser-actions');
+const iosOpenChrome = document.getElementById('ios-open-chrome');
+const iosUseSafari = document.getElementById('ios-use-safari');
+const iosModalNote = document.getElementById('ios-modal-note');
 
 let deferredInstallPrompt = null;
 let installedStateDetected = false;
 let iosModalPreviousFocus = null;
+let chromeHandoffTimer = null;
 
 function userAgent() {
   return navigator.userAgent || '';
@@ -32,6 +41,10 @@ function isIOS() {
   const classicIOS = /iPad|iPhone|iPod/i.test(ua) || /iPad|iPhone|iPod/i.test(platform);
   const desktopModeIPad = /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
   return classicIOS || desktopModeIPad;
+}
+
+function isIOSChrome() {
+  return isIOS() && /CriOS/i.test(userAgent());
 }
 
 function isAndroid() {
@@ -108,16 +121,31 @@ function applyEnvironmentCopy() {
   introCopy.textContent = 'Your HR for Health portal, ready from this computer.';
 }
 
-function showIOSInstallModal() {
-  if (!isIOSSafari() || isStandalone() || !iosInstallModal) {
+function setIOSModalContent({ title, copy, shareLabel = '', note = '', showShare = true, showBrowserActions = false }) {
+  if (!iosInstallModal) {
+    return;
+  }
+
+  iosModalTitle.textContent = title;
+  iosModalCopy.textContent = copy;
+  iosShareLabel.textContent = shareLabel;
+  iosShareCue.hidden = !showShare;
+  iosBrowserActions.hidden = !showBrowserActions;
+  iosModalNote.innerHTML = note;
+}
+
+function showIOSInstallModal(focusTarget = iosModalDismiss) {
+  if (!isIOS() || isStandalone() || !iosInstallModal) {
     return;
   }
 
   iosModalPreviousFocus = document.activeElement;
   iosInstallModal.hidden = false;
   document.body.classList.add('ios-modal-open');
-  requestAnimationFrame(() => iosInstallModal.classList.add('is-visible'));
-  iosModalDismiss?.focus({ preventScroll: true });
+  requestAnimationFrame(() => {
+    iosInstallModal.classList.add('is-visible');
+    focusTarget?.focus({ preventScroll: true });
+  });
 }
 
 function hideIOSInstallModal() {
@@ -134,6 +162,130 @@ function hideIOSInstallModal() {
   }
 }
 
+function buildChromeURL() {
+  const currentURL = window.location.href;
+
+  if (/^https:/i.test(currentURL)) {
+    return currentURL.replace(/^https:/i, 'googlechromes:');
+  }
+
+  if (/^http:/i.test(currentURL)) {
+    return currentURL.replace(/^http:/i, 'googlechrome:');
+  }
+
+  return null;
+}
+
+function renderIOSChromeInstructions() {
+  installButton.hidden = false;
+  installButton.textContent = 'Show install steps';
+  platformContent.innerHTML = `
+    <p><strong>Add the HRFH web app in two quick steps.</strong><br>Tap Share, then Add to Home Screen.</p>
+  `;
+  setIOSModalContent({
+    title: 'Add HRFH web app',
+    copy: 'Tap Share, then Add to Home Screen.',
+    shareLabel: 'Chrome Share',
+    note: 'Then choose <strong>Add to Home Screen</strong> and tap <strong>Add</strong>.'
+  });
+  setStatus();
+  showIOSInstallModal();
+}
+
+function renderIOSSafariInstructions() {
+  if (!isIOSSafari()) {
+    installButton.hidden = true;
+    platformContent.innerHTML = `
+      <p><strong>Continue in Safari.</strong><br>Open this page in Safari to add the HRFH web app to your home screen.</p>
+    `;
+    setIOSModalContent({
+      title: 'Continue in Safari',
+      copy: 'Open this installer in Safari, then use Share to add it to your home screen.',
+      note: 'Safari is the fallback when Google Chrome is unavailable.',
+      showShare: false
+    });
+    setStatus('Open Safari to continue.');
+    showIOSInstallModal();
+    return;
+  }
+
+  installButton.hidden = false;
+  installButton.textContent = 'Show install steps';
+  platformContent.innerHTML = `
+    <p><strong>Add the HRFH web app in two quick steps.</strong><br>Tap Share, then Add to Home Screen.</p>
+  `;
+  setIOSModalContent({
+    title: 'Add HRFH web app',
+    copy: 'Tap Share, then Add to Home Screen.',
+    shareLabel: 'Safari Share',
+    note: 'Then choose <strong>Add to Home Screen</strong> and tap <strong>Add</strong>.'
+  });
+  setStatus();
+  showIOSInstallModal();
+}
+
+function renderIOSChromePriority() {
+  installButton.hidden = false;
+  installButton.textContent = 'Use Google Chrome';
+  platformContent.innerHTML = `
+    <p><strong>Google Chrome is preferred on iPhone and iPad.</strong><br>Use Chrome when available; Safari remains the fallback.</p>
+  `;
+  setIOSModalContent({
+    title: 'Use Google Chrome',
+    copy: 'Google Chrome is preferred for adding the HRFH web app on iPhone and iPad.',
+    note: 'If Chrome is unavailable, continue in Safari.',
+    showShare: false,
+    showBrowserActions: true
+  });
+  setStatus();
+  showIOSInstallModal(iosOpenChrome);
+}
+
+function renderIOSInstructions() {
+  if (isIOSChrome()) {
+    renderIOSChromeInstructions();
+    return;
+  }
+
+  renderIOSChromePriority();
+}
+
+function attemptChromeHandoff() {
+  const chromeURL = buildChromeURL();
+
+  if (!chromeURL) {
+    renderIOSSafariInstructions();
+    return;
+  }
+
+  if (chromeHandoffTimer) {
+    window.clearTimeout(chromeHandoffTimer);
+  }
+
+  let leftCurrentBrowser = false;
+  const markBrowserExit = () => {
+    if (document.visibilityState === 'hidden') {
+      leftCurrentBrowser = true;
+    }
+  };
+
+  document.addEventListener('visibilitychange', markBrowserExit, { once: true });
+  window.addEventListener('pagehide', () => {
+    leftCurrentBrowser = true;
+  }, { once: true });
+
+  setStatus('Opening Google Chrome…');
+  iosModalCopy.textContent = 'Opening Google Chrome…';
+
+  chromeHandoffTimer = window.setTimeout(() => {
+    if (!leftCurrentBrowser && document.visibilityState !== 'hidden') {
+      renderIOSSafariInstructions();
+    }
+  }, 1400);
+
+  window.location.href = chromeURL;
+}
+
 function setInstalledState(message = 'HRFH web app installed.') {
   deferredInstallPrompt = null;
   installedStateDetected = true;
@@ -146,25 +298,6 @@ function setInstalledState(message = 'HRFH web app installed.') {
   platformContent.innerHTML = `
     <p><strong>${message}</strong><br>Open it anytime from ${launchPlace}.</p>
   `;
-}
-
-function renderIOSInstructions() {
-  if (!isIOSSafari()) {
-    installButton.hidden = true;
-    platformContent.innerHTML = `
-      <p><strong>Open this page in Safari.</strong><br>Safari is required to add the HRFH web app to your home screen.</p>
-    `;
-    setStatus('Open Safari to continue.');
-    return;
-  }
-
-  installButton.hidden = false;
-  installButton.textContent = 'Show install steps';
-  platformContent.innerHTML = `
-    <p><strong>Add the HRFH web app in two quick steps.</strong><br>Tap Share, then Add to Home Screen.</p>
-  `;
-  setStatus();
-  showIOSInstallModal();
 }
 
 function renderAndroidFallback() {
@@ -266,10 +399,10 @@ window.addEventListener('beforeinstallprompt', (event) => {
 
 installButton.addEventListener('click', async () => {
   if (isIOS()) {
-    if (isIOSSafari()) {
-      showIOSInstallModal();
+    if (isIOSChrome()) {
+      renderIOSChromeInstructions();
     } else {
-      renderIOSInstructions();
+      renderIOSChromePriority();
     }
     return;
   }
@@ -298,6 +431,8 @@ installButton.addEventListener('click', async () => {
   }
 });
 
+iosOpenChrome?.addEventListener('click', attemptChromeHandoff);
+iosUseSafari?.addEventListener('click', renderIOSSafariInstructions);
 iosModalDismiss?.addEventListener('click', hideIOSInstallModal);
 
 iosInstallModal?.addEventListener('click', (event) => {
