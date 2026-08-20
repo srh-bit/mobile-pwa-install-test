@@ -67,7 +67,7 @@ test('Android installed state provides an intentional reinstall recovery action'
   assert.match(js, /const reinstallButton\s*=\s*document\.getElementById\(['"]reinstall-button['"]\)/);
   assert.match(js, /reinstallButton\?\.addEventListener\(['"]click['"]/);
   assert.match(js, /clearInstallReceipt\(\)/);
-  assert.match(js, /renderInstallReady\(\)|renderInitialState\(\)/);
+  assert.match(js, /renderInstallReady\(\)|window\.location\.reload\(\)/);
 });
 
 test('Android installed-state release rotates the cached shell', async () => {
@@ -75,4 +75,21 @@ test('Android installed-state release rotates the cached shell', async () => {
 
   assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v6['"]/);
   assert.match(worker, /ANDROID_INSTALL_REVISION\s*=\s*['"]android-installed-state-v1['"]/);
+});
+
+test('Android production contract distinguishes browser evidence from native management', async () => {
+  const readme = await read('README.md');
+  const readiness = await read('docs/PRODUCTION-READINESS.md');
+  const security = await read('SECURITY.md');
+  const combined = `${readme}\n${readiness}\n${security}`;
+
+  assert.match(readme, /myhrfh-installer-v6/i);
+  assert.match(readiness, /beforeinstallprompt[^\n]*(?:must not|does not|never)[^\n]*(?:clear|erase|invalidate)/i);
+  assert.match(readiness, /arbitrary[^\n]*(?:launcher|home screen)[^\n]*(?:bookmark|shortcut|icon)/i);
+  assert.match(readiness, /Reinstall/i);
+  assert.match(readiness, /Trusted Web Activity|TWA/i);
+  assert.match(readiness, /ShortcutManager/i);
+  assert.match(readiness, /Restore[^\n]*Uninstall|Uninstall[^\n]*Restore/i);
+  assert.match(security, /non-SDK|hidden API/i);
+  assert.doesNotMatch(combined, /beforeinstallprompt[^\n]*(?:clears|invalidates)[^\n]*receipt/i);
 });
