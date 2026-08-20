@@ -50,8 +50,9 @@ test('confirmed Android PWA shows Open and Reinstall without restore or uninstal
 test('Android installed confirmation is concise', async () => {
   const js = await read('install.js');
   const installedState = js.match(/function setInstalledState\([^)]*\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
-  assert.match(installedState, /The myHRFH icon was added to your Home Screen\./i);
-  assert.doesNotMatch(installedState, /cannot inspect|launcher icon|restore quick access/i);
+  const androidBranch = installedState.match(/if\s*\(isAndroid\(\)\)\s*\{([\s\S]*?)\}\s*else if/)?.[1] ?? '';
+  assert.match(androidBranch, /The myHRFH icon was added to your Home Screen\./i);
+  assert.doesNotMatch(androidBranch, /cannot inspect|launcher icon|restore quick access/i);
 });
 
 test('Android fallback remains browser install rather than an unverifiable bookmark', async () => {
