@@ -137,10 +137,11 @@ test('install controller is capability-first and adapts ready copy for Android a
 test('iPhone and iPad use direct final guidance without toolbar questions', async () => {
   const guidance = await read('ios-guidance-v2.js');
   assert.match(guidance, /function renderCurrentBrowserFlow\(\)/);
-  assert.match(guidance, /ios-final-guidance-v1/i);
+  assert.match(guidance, /ios-final-guidance-v2/i);
   assert.match(guidance, /function shareSymbol\(/i);
   assert.match(guidance, /function moreSymbol\(/i);
   assert.match(guidance, /function addHomeSymbol\(/i);
+  assert.match(guidance, /<circle\s+cx="12"\s+cy="12"\s+r="10"\s+fill="none"/i);
   assert.match(guidance, /Add to Home Screen/i);
   assert.doesNotMatch(guidance, /CALIBRATION_SESSION_KEY|sessionStorage|buildCalibration|needsCalibration/i);
   assert.doesNotMatch(guidance, /navigator\.share\s*\(/i);
@@ -176,8 +177,8 @@ test('service worker never proxies or caches myHRFH and enforces same origin', a
   assert.match(worker, /\.\/launch\.html/);
 });
 
-test('service worker uses the final iOS v4 release cache identity', async () => {
+test('service worker uses the final iOS v5 release cache identity', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v4['"]/);
-  assert.match(worker, /const IOS_FINAL_GUIDANCE_REVISION = ['"]ios-final-guidance-v1['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v5['"]/);
+  assert.match(worker, /const IOS_FINAL_GUIDANCE_REVISION = ['"]ios-final-guidance-v2['"]/);
 });
