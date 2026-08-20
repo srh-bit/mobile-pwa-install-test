@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 const fileUrl = (path) => new URL(`../${path}`, import.meta.url);
 const read = (path) => readFile(fileUrl(path), 'utf8');
 
-test('iOS installer uses an automatic branded modal instead of inline setup steps', async () => {
+test('iOS installer uses an automatic branded modal with browser-aware controls', async () => {
   const html = await read('index.html');
   const js = await read('install.js');
   const css = await read('ios-modal.css');
@@ -16,20 +16,25 @@ test('iOS installer uses an automatic branded modal instead of inline setup step
   assert.match(html, /aria-modal=["']true["']/i);
   assert.match(html, /Tap Share, then Add to Home Screen\./i);
   assert.match(html, /id=["']ios-modal-dismiss["']/i);
+  assert.match(html, /id=["']ios-open-chrome["']/i);
+  assert.match(html, /id=["']ios-use-safari["']/i);
 
-  assert.match(js, /function showIOSInstallModal\(\)/);
+  assert.match(js, /function showIOSInstallModal\(/);
   assert.match(js, /iosInstallModal\.hidden\s*=\s*false/);
-  assert.match(js, /if\s*\(isIOSSafari\(\)\)[\s\S]*showIOSInstallModal\(\)/);
+  assert.match(js, /if\s*\(isIOSChrome\(\)\)[\s\S]*renderIOSChromeInstructions\(\)/);
+  assert.match(js, /renderIOSChromePriority\(\)/);
   assert.doesNotMatch(js, /navigator\.share\s*\(/, 'Web Share must not be presented as an Add to Home Screen shortcut');
 
   assert.match(css, /\.ios-install-modal/);
   assert.match(css, /position:\s*fixed/i);
   assert.match(css, /backdrop-filter:\s*blur\(/i);
   assert.match(css, /\.ios-share-cue/);
+  assert.match(css, /\.ios-browser-actions/);
 });
 
-test('service worker refreshes the cached shell for the iOS modal build', async () => {
+test('service worker refreshes the cached shell for the current iOS browser flow', async () => {
   const worker = await read('service-worker.js');
   assert.match(worker, /const IOS_MODAL_REVISION = ['"]ios-install-modal-v1['"]/);
+  assert.match(worker, /const IOS_BROWSER_REVISION = ['"]ios-chrome-priority-v1['"]/);
   assert.match(worker, /\.\/ios-modal\.css/);
 });
