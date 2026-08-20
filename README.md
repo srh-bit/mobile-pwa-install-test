@@ -1,47 +1,42 @@
 # mobile-pwa-install-test
 
-Temporary PWA install-experience test for iOS and Android.
+Temporary PWA install-experience test for iOS and Android, branded for HR for Health and targeting **https://myhrfh.com**.
 
-## Destination
+## What this prototype proves
 
-The user-facing destination for this prototype is:
-
-**https://myhrfh.com**
+- Android native install prompting from a simple **Add to Home Screen** action
+- iPhone/iPad Safari Add to Home Screen guidance
+- professional HR for Health installer presentation
+- local 192×192 and 512×512 HRFH PNG icons, including maskable variants
+- immediate forwarding from the installed Home Screen icon to `https://myhrfh.com`
+- no production-site, Salesforce, credential, analytics, or native-package changes
 
 ## Important test limitation
 
-A true installed PWA must launch from the same origin where the user installs it. Because this proof of concept is hosted on GitHub Pages, its test manifest must launch the GitHub Pages origin, not `myhrfh.com`.
+A true installed PWA must launch from the same origin where the user installs it. Because this proof of concept is hosted on GitHub Pages, its manifest launches the GitHub Pages origin and the installed test shell immediately forwards to `https://myhrfh.com` when launched from the Home Screen.
 
-To reproduce the desired shortcut behavior anyway, the installed test shell immediately forwards to `https://myhrfh.com` when it detects that it was launched from the Home Screen. The installer page is therefore only intended to be seen before installation.
+For the final production shortcut to launch `myhrfh.com` directly without the GitHub forwarding shell, the small manifest/icon/install metadata set will need to be served from `https://myhrfh.com` itself.
 
-The prototype validates:
+## Android retest
 
-- Android install-prompt behavior
-- iPhone/iPad Add to Home Screen guidance
-- installed standalone detection
-- immediate forwarding from the installed icon to `https://myhrfh.com`
-- the shortest practical instruction flow
+1. Delete any previously installed test shortcut so Android cannot reuse old icon metadata.
+2. Open `https://srh-bit.github.io/mobile-pwa-install-test/` in Chrome.
+3. Refresh once so the latest service worker and icon cache are active.
+4. Tap **Add to Home Screen** and confirm the native install dialog.
+5. Confirm the native dialog and Home Screen icon both use HR for Health branding and the app name is **myHRFH**.
+6. Launch **myHRFH** and confirm it immediately opens `https://myhrfh.com`.
 
-For the final production shortcut to open directly at `myhrfh.com` without the GitHub-hosted test shell, the manifest/install metadata will need to be served by `https://myhrfh.com` itself.
+If Chrome does not expose the install prompt, use its browser menu and select **Install app** or **Add to Home screen**.
 
-## Android test
+## iPhone/iPad retest
 
-1. Open the GitHub Pages test URL in Chrome on Android.
-2. Wait for **Install shortcut** to appear.
-3. Tap **Install shortcut** and confirm the browser prompt.
-4. Launch **myHRFH Test** from the Home Screen.
-5. Confirm the installed icon immediately forwards to `https://myhrfh.com` instead of showing the installer again.
-
-If Chrome does not expose the install prompt, use its menu and select **Install app** or **Add to Home screen**.
-
-## iPhone/iPad test
-
-1. Open the GitHub Pages test URL in Safari.
-2. Tap **Share**.
-3. Tap **Add to Home Screen**.
-4. Keep **Open as Web App** enabled if Safari presents that option, then tap **Add**.
-5. Launch **myHRFH Test** from the Home Screen.
-6. Confirm the installed icon immediately forwards to `https://myhrfh.com` instead of showing the installer again.
+1. Delete any previously installed test shortcut.
+2. Open `https://srh-bit.github.io/mobile-pwa-install-test/` in Safari.
+3. Refresh once.
+4. Tap **Share** → **Add to Home Screen**.
+5. Keep **Open as Web App** enabled if Safari offers it, then tap **Add**.
+6. Confirm the Home Screen icon uses HR for Health branding and the name is **myHRFH**.
+7. Launch it and confirm it immediately opens `https://myhrfh.com`.
 
 ## Validation
 
@@ -51,7 +46,7 @@ The repository uses only Node.js built-ins for deterministic checks:
 node --test tests/validate.mjs
 ```
 
-GitHub Actions runs the same validation on the feature branch and on pull requests to `main`.
+GitHub Actions runs the same validation on the feature branch and on pull requests to `main`. The validation checks the manifest, direct-launch behavior, HRFH visual tokens, same-origin service-worker safety, PNG signatures/dimensions, branded icon asset sizes, and cache rotation after icon replacement.
 
 ## Scope
 
