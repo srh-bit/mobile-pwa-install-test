@@ -27,7 +27,18 @@ The installer uses these states in order:
 
 `navigator.getInstalledRelatedApps()` is used only when present. It can confirm an installation in supported Chromium environments when the manifest relationship is configured correctly. It is not universally available and therefore cannot be the sole source of truth.
 
-If the API is missing, blocked, or throws, the installer records the state as **unknown**, not **not installed**.
+If the API is missing, blocked, throws, or returns no matching relationship, the installer records that result as **unknown**, not **not installed**. An empty relationship result is not treated as proof that the PWA has been removed because legacy installs can outlive manifest/relationship changes.
+
+### Legacy and staging install continuity
+
+The installer uses a same-origin boolean installation receipt as supplemental evidence for a previously verified install. This is specifically intended to preserve correct desktop behavior when a staging/legacy installation remains installed but the current relationship API cannot match it.
+
+- The receipt key is `myhrfh-install-receipt-v1` and contains only the value `installed`; it contains no identity, authentication, analytics, or user data.
+- A normal browser visit cannot create the receipt.
+- The receipt is written only when the page is actually running in standalone mode or when the browser fires `appinstalled`.
+- `launch.html` records the receipt only when it is running as the installed app, then forwards to `https://myhrfh.com` before installer UI can paint.
+- The installer still waits for `beforeinstallprompt` before trusting a stored receipt. If the browser exposes a real install prompt, that capability is treated as stronger evidence that the app is currently installable and the receipt is cleared.
+- Therefore `getInstalledRelatedApps()` remains a positive-confirmation source, while the receipt provides continuity for verified prior installs without converting an empty API result into a false not-installed conclusion.
 
 ### Home-screen icon detection
 
@@ -58,12 +69,12 @@ This is visual guidance only. Web content cannot inspect, highlight, or manipula
 
 | Environment | Detection / install path | Installed management |
 | --- | --- | --- |
-| Android Chrome / supported Chromium | `getInstalledRelatedApps()` when available; otherwise `beforeinstallprompt`; browser-menu fallback | When positively confirmed: Open; Restore shortcut; Uninstall guidance |
+| Android Chrome / supported Chromium | `getInstalledRelatedApps()` when available; verified install receipt continuity; otherwise `beforeinstallprompt`; browser-menu fallback | When positively confirmed: Open; Restore shortcut; Uninstall guidance |
 | iPhone / iPad Chrome | Chrome-specific guided overlay → Share → Add to Home Screen | Normal browser tabs cannot reliably confirm installation; no installed-only Restore/Uninstall controls |
 | iPhone / iPad Safari | Chrome-preferred handoff when available; Safari guided overlay → Share → Add to Home Screen fallback | Normal Safari tabs cannot reliably confirm installation; no installed-only Restore/Uninstall controls |
-| Windows Chrome | installed-related-app check; native install prompt | When positively confirmed: Open; `chrome://apps` → Create shortcut; uninstall guidance |
-| Windows Edge | installed-related-app check; native install prompt | When positively confirmed: Open; `edge://apps` → Create Desktop shortcut; uninstall guidance |
-| macOS Chrome / Edge | installed-related-app check when supported; native install prompt | When positively confirmed: Open; browser apps/shortcut management and uninstall guidance |
+| Windows Chrome | installed-related-app check; verified install receipt continuity; native install prompt | When positively confirmed: Open; `chrome://apps` → Create shortcut; uninstall guidance |
+| Windows Edge | installed-related-app check; verified install receipt continuity; native install prompt | When positively confirmed: Open; `edge://apps` → Create Desktop shortcut; uninstall guidance |
+| macOS Chrome / Edge | installed-related-app check when supported; verified install receipt continuity; native install prompt | When positively confirmed: Open; browser apps/shortcut management and uninstall guidance |
 | macOS Safari | File → Add to Dock | Management controls are not shown unless installation is positively confirmed; otherwise manual application/Dock guidance only |
 | Other / unsupported browser | conservative browser-menu guidance | No false installed-state claim and no installed-only management actions |
 
@@ -71,11 +82,11 @@ Browser UI labels can change between releases. Wording should identify the inten
 
 ## Installation prompt timing
 
-Chromium can dispatch `beforeinstallprompt` after page initialization. The public page therefore waits briefly for the native event before settling on fallback guidance. This prevents the page from prematurely showing only an Open action or browser-menu copy when a native install prompt is about to become available.
+Chromium can dispatch `beforeinstallprompt` after page initialization. The public page therefore waits briefly for the native event before settling on fallback or receipt-based installed guidance. This prevents the page from prematurely showing an installed state when a native install prompt is about to become available and lets the browser invalidate a stale receipt after uninstall.
 
 ## Launch behavior
 
-The manifest `start_url` must remain within the manifest scope and on the same origin as the installed PWA. In staging, `launch.html` is a minimal same-origin shell that redirects to `https://myhrfh.com` in the document head before installer UI can render.
+The manifest `start_url` must remain within the manifest scope and on the same origin as the installed PWA. In staging, `launch.html` is a minimal same-origin shell that, when actually running standalone, records the verified install receipt and then redirects to `https://myhrfh.com` in the document head before installer UI can render.
 
 For production, host the installer and launch route directly under `myhrfh.com`. Prefer a same-origin application route so the installed app opens the intended portal without a GitHub-origin intermediary or browser badge associated with a cross-origin shortcut workflow.
 
@@ -89,7 +100,7 @@ The service worker:
 - uses cache-first behavior for stable same-origin static assets;
 - claims clients after activation and maintains a bounded app-shell cache;
 - uses release cache identity `myhrfh-installer-v2` for the guided-overlay release candidate;
-- includes an explicit `ios-guided-overlay-v1` revision marker;
+- includes explicit `desktop-installed-state-v2` and `ios-guided-overlay-v1` revision markers;
 - must be versioned/revised whenever install-state behavior or critical UI assets change.
 
 ## Production HTTP headers
@@ -115,7 +126,7 @@ Configure these on the final `myhrfh.com` host. Prefer HTTP response headers ove
 
 The installer is public but operational rather than search content, so the staging/public installer page uses `noindex, nofollow` unless HR for Health deliberately decides the production install route should be indexed.
 
-The installer collects no credentials, authentication tokens, form data, analytics, advertising identifiers, or personal information. No user-specific data is required to determine the install experience.
+The installer collects no credentials, authentication tokens, form data, analytics, advertising identifiers, or personal information. The install receipt is a same-origin boolean marker only and contains no user-specific data.
 
 ## Accessibility requirements
 
@@ -131,12 +142,14 @@ The installer collects no credentials, authentication tokens, form data, analyti
 ## Failure behavior
 
 - If service-worker registration fails, the page remains usable online and provides a concise refresh/retry message.
-- If installed-state probing fails, use `unknown`; do not infer not-installed and do not show installed-only management actions.
+- If installed-state probing fails or returns no matching relationship, use `unknown`; do not infer not-installed.
+- If a verified install receipt exists, wait for the bounded native-install-prompt window before using it as supplemental installed evidence.
+- If `beforeinstallprompt` fires, clear any stored receipt and render the native install state.
 - If Chrome handoff on iOS cannot complete, preserve the Safari fallback.
 - If the iOS toolbar position heuristic is imperfect, the two-step written guidance remains complete without depending on the spotlight location.
-- If `beforeinstallprompt` never arrives, render browser-specific fallback guidance after the bounded wait.
+- If `beforeinstallprompt` never arrives, use the strongest remaining verified evidence or render browser-specific fallback guidance.
 - If the native install is cancelled, return control to the page without claiming success.
-- If an install completes and `appinstalled` fires, render the Installed state and only the management actions permitted by the current platform/capability gate.
+- If an install completes and `appinstalled` fires, write the install receipt, render the Installed state, and show only management actions permitted by the current platform/capability gate.
 
 ## Security boundaries
 
@@ -157,7 +170,7 @@ node --check service-worker.js
 node --test tests/*.mjs
 ```
 
-The behavior suite covers the manifest contract, transparent icons, pre-paint launch behavior, Android/iOS/desktop detection, Chrome-first iOS flow, guided iOS visual guidance, installed-state triage, condition-gated management actions, shortcut restoration, uninstall guidance, service-worker scope/freshness, accessibility hooks, privacy safeguards, and production/security documentation.
+The behavior suite covers the manifest contract, transparent icons, pre-paint launch behavior, Android/iOS/desktop detection, Chrome-first iOS flow, guided iOS visual guidance, relationship-sensitive installed-state triage, verified install-receipt continuity, condition-gated management actions, shortcut restoration, uninstall guidance, service-worker scope/freshness, accessibility hooks, privacy safeguards, and production/security documentation.
 
 ## Production deployment checklist
 
@@ -168,17 +181,18 @@ Before making the public URL the official HRFH install route:
 3. Review the service-worker scope so it cannot unintentionally control unrelated portal routes.
 4. Configure and verify `Content-Security-Policy`, `Strict-Transport-Security`, `X-Content-Type-Options`, Referrer-Policy, Permissions-Policy, and cache headers.
 5. Verify the destination route requires normal HRFH authentication and the installer does not weaken authentication behavior.
-6. Test clean first-install, already-installed, deleted-shortcut-but-app-still-installed, cancelled-install, and uninstall instructions on each supported platform.
-7. Test iOS Chrome and Safari in portrait and landscape, including iPad, and confirm the guided overlay points toward the appropriate toolbar edge without obscuring required controls.
-8. Test iOS with Chrome installed and without Chrome available.
-9. Test Android where Chrome mints a full web app and where the browser falls back to a badged shortcut.
-10. Test Windows Chrome and Edge both before and after deleting only the desktop shortcut.
-11. Test macOS Chrome/Edge and Safari Add to Dock.
-12. Verify Restore shortcut and Uninstall are absent in unknown/manual-install states and present only after positive installed-state confirmation on supported platforms.
-13. Verify keyboard-only use, screen-reader dialog labels, zoom/reflow, and reduced motion.
-14. Confirm no analytics, credentials, PII, or unexpected network requests are introduced.
-15. Run the complete repository validation suite and browser-script syntax checks on the exact release commit.
-16. Perform a final physical-device acceptance pass before publishing the production install link broadly.
+6. Test clean first-install, already-installed, legacy-installed-with-empty-related-app-result, deleted-shortcut-but-app-still-installed, cancelled-install, full uninstall, and reinstall on each supported platform.
+7. Verify a real standalone launch/appinstalled writes the receipt, a normal browser visit does not, and a later `beforeinstallprompt` clears it after uninstall.
+8. Test iOS Chrome and Safari in portrait and landscape, including iPad, and confirm the guided overlay points toward the appropriate toolbar edge without obscuring required controls.
+9. Test iOS with Chrome installed and without Chrome available.
+10. Test Android where Chrome mints a full web app and where the browser falls back to a badged shortcut.
+11. Test Windows Chrome and Edge both before and after deleting only the desktop shortcut.
+12. Test macOS Chrome/Edge and Safari Add to Dock.
+13. Verify Restore shortcut and Uninstall are absent in unknown/manual-install states and present only after positive installed-state confirmation on supported platforms.
+14. Verify keyboard-only use, screen-reader dialog labels, zoom/reflow, and reduced motion.
+15. Confirm no analytics, credentials, PII, or unexpected network requests are introduced.
+16. Run the complete repository validation suite and browser-script syntax checks on the exact release commit.
+17. Perform a final physical-device acceptance pass before publishing the production install link broadly.
 
 ## Release decision
 
