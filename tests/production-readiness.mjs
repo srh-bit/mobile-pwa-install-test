@@ -66,9 +66,10 @@ test('public installer includes privacy and indexing safeguards', async () => {
   assert.match(html, /aria-describedby=["']management-copy["']/i);
 });
 
-test('service worker uses production navigation freshness and rotates the public shell', async () => {
+test('service worker uses production navigation freshness and a release cache identity', async () => {
   const worker = await read('service-worker.js');
 
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v1['"]/);
   assert.match(worker, /production-readiness-v1/i);
   assert.match(worker, /request\.mode\s*===\s*['"]navigate['"]/);
   assert.match(worker, /fetch\(request\)[\s\S]*caches\.match\(request\)/s);
