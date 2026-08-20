@@ -177,8 +177,9 @@ test('service worker never proxies or caches myHRFH and enforces same origin', a
   assert.match(worker, /\.\/launch\.html/);
 });
 
-test('service worker uses the final iOS v5 release cache identity', async () => {
+test('service worker uses the v6 Android installed-state release cache identity', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v5['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v6['"]/);
+  assert.match(worker, /const ANDROID_INSTALL_REVISION = ['"]android-installed-state-v1['"]/);
   assert.match(worker, /const IOS_FINAL_GUIDANCE_REVISION = ['"]ios-final-guidance-v2['"]/);
 });
