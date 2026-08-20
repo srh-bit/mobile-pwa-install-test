@@ -14,8 +14,9 @@ The staging installer is published through GitHub Pages and ultimately targets `
 - Uses the browser's native install prompt where supported.
 - Uses browser-specific manual-install guidance where the platform does not expose a programmable prompt.
 - On iOS, presents a direct two-step visual assistant without asking browser-layout questions.
-- Uses iOS-style vector symbols for **Share**, **More (…)**, and **Add to Home Screen** instead of placeholder text glyphs or a fake full browser toolbar.
-- iPhone Safari guidance says **Tap Share** and provides **More (…) → Share** as the immediate fallback when Share is not visible.
+- Uses iOS-faithful vector geometry for **Share** (outlined square + upward arrow), **More** (outlined circle + three horizontal dots), and **Add to Home Screen** (outlined rounded square + plus), rather than placeholder text glyphs or a fake full browser toolbar.
+- Styles those instructional symbols with the HRFH page palette, surface depth, and spacing while preserving the recognizable iOS control shapes.
+- iPhone Safari guidance says **Tap Share, or More if Share isn't shown. Then choose Share.**
 - iPhone Chrome portrait guides users to **Share beside the address bar** without claiming whether the user placed the address bar at the top or bottom.
 - Uses a high-confidence top-right Share cue for supported iPad and Chrome-landscape layouts.
 - Keeps Safari recovery concise: **Add to Home Screen**, **Open as Web App** when shown, and a collapsed **Edit Actions → Add to Home Screen** fallback.
@@ -68,7 +69,7 @@ node --check service-worker.js
 node --test tests/*.mjs
 ```
 
-The suite covers manifest/install identity, transparent icons, pre-paint launch behavior, Android/desktop native install prompts, legacy installed-state continuity, direct iOS guidance, accurate action symbols, Safari Share/More and Open-as-Web-App recovery, capability-gated management controls, service-worker scope/freshness, accessibility hooks, privacy safeguards, and production documentation.
+The suite covers manifest/install identity, transparent icons, pre-paint launch behavior, Android/desktop native install prompts, legacy installed-state continuity, direct iOS guidance, accurate Share/circled-More/Add-to-Home-Screen symbols, Safari Share/More and Open-as-Web-App recovery, capability-gated management controls, service-worker scope/freshness, accessibility hooks, privacy safeguards, and production documentation.
 
 ## Physical-device acceptance
 
@@ -77,12 +78,15 @@ Before production rollout, test at minimum:
 - Android Chrome clean install, already installed, uninstall/reinstall, and badged-shortcut fallback.
 - iPhone Chrome portrait with the address bar at both top and bottom.
 - iPhone Chrome landscape.
-- iPhone Safari layouts where Share is directly visible and where Share is reached through More (…).
+- iPhone Safari layouts where Share is directly visible and where Share is reached through the circled More control.
 - iPad Safari and Chrome.
 - Safari **Open as Web App** and **Edit Actions → Add to Home Screen** recovery.
+- Confirm Share, circled More, and Add-to-Home-Screen shapes match current iOS controls while HRFH colors/depth remain consistent with the installer page.
 - Portrait/landscape rotation, reduced motion, zoom/reflow, safe-area behavior, and screen-reader labels.
 - Windows Chrome clean install, existing install, deleted desktop shortcut while app remains installed, and uninstall/reinstall.
 - Windows Edge equivalent states.
 - macOS Chrome/Edge and Safari Add to Dock.
+
+Current release cache identity: `myhrfh-installer-v5`; iOS guidance revision: `ios-final-guidance-v2`.
 
 `main` is not used as a live production deployment target during staging validation.
