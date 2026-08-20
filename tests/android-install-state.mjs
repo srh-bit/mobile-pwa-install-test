@@ -47,6 +47,13 @@ test('confirmed Android PWA shows Open and Reinstall without restore or uninstal
   assert.match(installedState, /Reinstall/i);
 });
 
+test('Android installed confirmation is concise', async () => {
+  const js = await read('install.js');
+  const installedState = js.match(/function setInstalledState\([^)]*\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
+  assert.match(installedState, /The myHRFH icon was added to your Home Screen\./i);
+  assert.doesNotMatch(installedState, /cannot inspect|launcher icon|restore quick access/i);
+});
+
 test('Android fallback remains browser install rather than an unverifiable bookmark', async () => {
   const js = await read('install.js');
   const fallback = js.match(/function renderAndroidFallback\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
@@ -62,9 +69,9 @@ test('Android installed state retains intentional reinstall recovery', async () 
   assert.match(js, /clearInstallReceipt\(\)/);
 });
 
-test('PWA-only Android recovery rotates the cached shell', async () => {
+test('PWA-only Android recovery refreshes the cached shell', async () => {
   const worker = await read('service-worker.js');
   assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v8['"]/);
-  assert.match(worker, /ANDROID_INSTALL_REVISION\s*=\s*['"]android-pwa-recovery-v2['"]/);
+  assert.match(worker, /ANDROID_INSTALL_REVISION\s*=\s*['"]android-pwa-recovery-v3['"]/);
   assert.doesNotMatch(worker, /ANDROID_NATIVE_MANAGEMENT_REVISION|android-native-bridge/);
 });
