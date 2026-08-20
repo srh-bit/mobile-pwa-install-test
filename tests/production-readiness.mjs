@@ -5,23 +5,53 @@ import { readFile } from 'node:fs/promises';
 const fileUrl = (path) => new URL(`../${path}`, import.meta.url);
 const read = (path) => readFile(fileUrl(path), 'utf8');
 
-test('installed state exposes open, shortcut restore, and uninstall management actions', async () => {
+test('installed state exposes management actions only through explicit capability gating', async () => {
   const html = await read('index.html');
   const js = await read('install.js');
 
-  assert.match(html, /id=["']restore-shortcut-button["']/i);
-  assert.match(html, /id=["']uninstall-button["']/i);
+  assert.match(html, /id=["']restore-shortcut-button["'][^>]+hidden/i);
+  assert.match(html, /id=["']uninstall-button["'][^>]+hidden/i);
   assert.match(html, /id=["']management-dialog["']/i);
   assert.match(html, /id=["']management-title["']/i);
   assert.match(html, /id=["']management-steps["']/i);
 
-  assert.match(js, /function setInstalledState\(/);
-  assert.match(js, /restoreShortcutButton\.hidden\s*=\s*false/);
-  assert.match(js, /uninstallButton\.hidden\s*=\s*false/);
+  assert.match(js, /function getInstalledManagementAvailability\(/);
+  assert.match(js, /confirmed/);
+  assert.match(js, /restoreShortcutButton\.hidden\s*=\s*!management\.restore/);
+  assert.match(js, /uninstallButton\.hidden\s*=\s*!management\.uninstall/);
+  assert.match(js, /installedActions\.hidden\s*=\s*!\(management\.restore\s*\|\|\s*management\.uninstall\)/);
   assert.match(js, /HRFH web app is installed\./i);
   assert.match(js, /function showShortcutHelp\(\)/);
   assert.match(js, /function showUninstallHelp\(\)/);
   assert.doesNotMatch(js, /navigator\.[A-Za-z]*uninstall\s*\(/i, 'public web pages must not pretend they can uninstall a PWA');
+});
+
+test('iOS guidance uses an automatic visual toolbar-edge walkthrough', async () => {
+  const html = await read('index.html');
+  const js = await read('install.js');
+  const css = await read('ios-modal.css');
+
+  assert.match(html, /id=["']ios-toolbar-guide["']/i);
+  assert.match(html, /id=["']ios-guide-spotlight["']/i);
+  assert.match(html, /id=["']ios-guide-arrow["']/i);
+  assert.match(html, /id=["']ios-guide-step-one["']/i);
+  assert.match(html, /id=["']ios-guide-step-two["']/i);
+  assert.match(html, />Tap Share</i);
+  assert.match(html, />Add to Home Screen</i);
+
+  assert.match(js, /function configureIOSGuidance\(/);
+  assert.match(js, /function isIPad\(\)/);
+  assert.match(js, /orientation:\s*landscape/i);
+  assert.match(js, /ios-guide-chrome/);
+  assert.match(js, /ios-guide-safari/);
+  assert.match(js, /ios-guide-top|ios-guide-bottom/);
+  assert.match(js, /showIOSInstallModal/);
+
+  assert.match(css, /\.ios-toolbar-guide/);
+  assert.match(css, /\.ios-guide-spotlight/);
+  assert.match(css, /\.ios-guide-arrow/);
+  assert.match(css, /backdrop-filter:\s*blur/i);
+  assert.match(css, /@keyframes\s+ios-guide-pulse/i);
 });
 
 test('installation probing distinguishes installed, not-installed, and unknown instead of guessing', async () => {
@@ -69,7 +99,8 @@ test('public installer includes privacy and indexing safeguards', async () => {
 test('service worker uses production navigation freshness and a release cache identity', async () => {
   const worker = await read('service-worker.js');
 
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v1['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v2['"]/);
+  assert.match(worker, /ios-guided-overlay-v1/i);
   assert.match(worker, /production-readiness-v1/i);
   assert.match(worker, /request\.mode\s*===\s*['"]navigate['"]/);
   assert.match(worker, /fetch\(request\)[\s\S]*caches\.match\(request\)/s);
@@ -83,6 +114,8 @@ test('production readiness and security guidance are documented', async () => {
   assert.match(readiness, /myhrfh\.com/i);
   assert.match(readiness, /getInstalledRelatedApps/i);
   assert.match(readiness, /home.?screen icon/i);
+  assert.match(readiness, /visual guidance|guided overlay/i);
+  assert.match(readiness, /management actions/i);
   assert.match(readiness, /uninstall/i);
   assert.match(readiness, /Content-Security-Policy/i);
   assert.match(readiness, /Strict-Transport-Security/i);
