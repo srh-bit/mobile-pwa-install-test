@@ -51,6 +51,14 @@ test('desktop browser helpers explicitly exclude Android', async () => {
   assert.match(edgeDesktop, /!isAndroid\(\)/);
 });
 
+test('Android fallback does not encourage an unverifiable launcher bookmark', async () => {
+  const js = await read('install.js');
+  const fallback = js.match(/function renderAndroidFallback\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
+
+  assert.match(fallback, /Install app/i);
+  assert.doesNotMatch(fallback, /Add to Home screen/i);
+});
+
 test('Android installed state provides an intentional reinstall recovery action', async () => {
   const html = await read('index.html');
   const js = await read('install.js');
