@@ -29,15 +29,13 @@ test('Android no longer exposes an uninstall action', async () => {
   assert.doesNotMatch(js, /requestAndroidUninstall|showUninstallHelp|nativeHasCapability|HRFHAndroidNative/);
 });
 
-test('confirmed Android PWA offers Restore Home Screen shortcut without pretending to inspect launcher placement', async () => {
-  const html = await read('index.html');
+test('confirmed Android PWA keeps installed UI to Open and Reinstall without Restore', async () => {
   const js = await read('install.js');
-  assert.match(html, /Restore Home Screen shortcut/i);
   const availability = js.match(/function getInstalledManagementAvailability\([^)]*\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
-  assert.match(availability, /isAndroid\(\)/);
-  assert.match(availability, /restore:\s*true/);
-  assert.match(js, /Open your app list and find myHRFH/i);
-  assert.match(js, /website cannot (?:inspect|verify|detect)[^\n]*(?:Home Screen|launcher)[^\n]*(?:icon|shortcut)/i);
+  const installedState = js.match(/function setInstalledState\([^)]*\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
+  assert.match(availability, /isAndroid\(\)[^\n]*restore:\s*false/i);
+  assert.doesNotMatch(installedState, /Restore Home Screen shortcut/i);
+  assert.match(installedState, /Reinstall/i);
 });
 
 test('supported Android related-app probe treats an empty self-PWA result as not installed', async () => {
@@ -69,6 +67,5 @@ test('production contract documents app-installed detection versus launcher-icon
   assert.match(combined, /PWA-only|browser-only/i);
   assert.match(combined, /getInstalledRelatedApps/i);
   assert.match(combined, /cannot[^\n]*(?:inspect|detect|verify)[^\n]*(?:Home Screen|launcher)[^\n]*(?:icon|shortcut)/i);
-  assert.match(combined, /Restore Home Screen shortcut/i);
   assert.doesNotMatch(readiness, /Managed Android TWA|Native command contract|Digital Asset Links release boundary/i);
 });
