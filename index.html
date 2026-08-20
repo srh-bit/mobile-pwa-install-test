@@ -50,9 +50,7 @@
         <button id="install-button" class="button button-primary" type="button" hidden>Install HRFH web app</button>
         <a id="open-button" class="button button-secondary" href="https://myhrfh.com" rel="noopener">Open myHRFH</a>
         <button id="reinstall-button" class="button button-quiet" type="button" hidden>Reinstall</button>
-        <div id="installed-actions" class="installed-actions" hidden>
-          <button id="restore-shortcut-button" class="button button-tertiary" type="button" hidden>Restore Home Screen shortcut</button>
-        </div>
+        <div id="installed-actions" hidden style="display:none!important"><span id="restore-shortcut-button" hidden></span></div>
       </div>
       <p id="status-message" class="status" role="status" aria-live="polite"></p>
       <footer class="trust-note"><span class="trust-dot" aria-hidden="true"></span>Opens <strong>myhrfh.com</strong></footer>
@@ -84,16 +82,5 @@
       <p id="ios-modal-note" class="ios-modal-note">Choose <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>.</p>
     </section>
   </div>
-
-  <dialog id="management-dialog" class="management-dialog" aria-labelledby="management-title" aria-describedby="management-copy">
-    <div class="management-dialog-inner">
-      <button id="management-close" class="management-close" type="button" aria-label="Close">×</button>
-      <p class="management-eyebrow">HRFH web app</p>
-      <h2 id="management-title">Restore Home Screen shortcut</h2>
-      <p id="management-copy" class="management-copy">Follow the steps for this device.</p>
-      <ol id="management-steps" class="management-steps"></ol>
-      <button id="management-done" class="button button-primary" type="button">Done</button>
-    </div>
-  </dialog>
 </body>
 </html>
