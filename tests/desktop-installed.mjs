@@ -42,6 +42,6 @@ test('empty related-app results are not treated as definitive not-installed stat
 
 test('service worker refreshes the app shell without regressing desktop installed-state detection', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v4['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v5['"]/);
   assert.match(worker, /const BUILD_REVISION = ['"]desktop-installed-state-v2['"]/);
 });
