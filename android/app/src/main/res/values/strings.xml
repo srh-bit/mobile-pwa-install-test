@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">myHRFH</string>
+    <string name="shortcut_name">myHRFH</string>
+    <string name="asset_statements" translatable="false">[{"relation":["delegate_permission/common.handle_all_urls","delegate_permission/common.use_as_origin"],"target":{"namespace":"web","site":"https://myhrfh.com"}}]</string>
+</resources>
