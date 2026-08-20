@@ -35,6 +35,6 @@ test('desktop controller confirms installed state before rendering fallback guid
 
 test('service worker refreshes the app shell for desktop installed-state detection', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v1['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v2['"]/);
   assert.match(worker, /const BUILD_REVISION = ['"]desktop-installed-state-v1['"]/);
 });
