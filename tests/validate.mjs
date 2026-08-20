@@ -3,49 +3,55 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
-const LOGO_URL = 'https://hrforhealth.com/wp-content/uploads/2024/04/Logo-icon-1.png.webp';
 
 async function readManifest() {
   return JSON.parse(await read('manifest.webmanifest'));
 }
 
-test('manifest defines a same-origin standalone myHRFH test app', async () => {
+test('manifest defines a same-origin standalone myHRFH app with HRFH theme', async () => {
   const manifest = await readManifest();
   assert.equal(manifest.name, 'myHRFH Shortcut Test');
   assert.equal(manifest.short_name, 'myHRFH Test');
   assert.equal(manifest.start_url, './');
   assert.equal(manifest.scope, './');
   assert.equal(manifest.display, 'standalone');
+  assert.equal(manifest.background_color, '#ffffff');
+  assert.equal(manifest.theme_color, '#4a0d7f');
   assert.equal(manifest.prefer_related_applications, false);
 });
 
-test('manifest uses the HR for Health logo for shortcut branding with installable PNG fallbacks', async () => {
+test('manifest uses only local HR for Health PNG artwork for install icons', async () => {
   const manifest = await readManifest();
   const icons = manifest.icons ?? [];
-  assert.ok(
-    icons.some((icon) => icon.src === LOGO_URL && icon.type === 'image/webp'),
-    'HR for Health WebP logo must be the primary shortcut artwork'
-  );
-  assert.ok(icons.some((icon) => icon.sizes === '192x192' && icon.type === 'image/png'));
-  assert.ok(icons.some((icon) => icon.sizes === '512x512' && icon.type === 'image/png'));
-  assert.ok(icons.some((icon) => icon.purpose?.includes('maskable')));
+  assert.ok(icons.length >= 4);
+  assert.ok(icons.every((icon) => icon.src.startsWith('./icons/') && icon.type === 'image/png'));
+  assert.ok(icons.some((icon) => icon.src === './icons/icon-192.png' && icon.sizes === '192x192' && icon.purpose === 'any'));
+  assert.ok(icons.some((icon) => icon.src === './icons/icon-512.png' && icon.sizes === '512x512' && icon.purpose === 'any'));
+  assert.ok(icons.some((icon) => icon.src === './icons/icon-maskable-192.png' && icon.sizes === '192x192' && icon.purpose === 'maskable'));
+  assert.ok(icons.some((icon) => icon.src === './icons/icon-maskable-512.png' && icon.sizes === '512x512' && icon.purpose === 'maskable'));
+  assert.ok(!icons.some((icon) => /^https?:/i.test(icon.src)), 'install icons must not depend on an external host');
 });
 
-test('page links all install resources and uses the HR for Health logo for iOS and preview branding', async () => {
+test('page uses local HRFH artwork and professional HR for Health branding', async () => {
   const html = await read('index.html');
   assert.match(html, /rel=["']manifest["'][^>]+href=["']\.\/manifest\.webmanifest["']/i);
-  assert.ok(
-    html.includes(`<link rel="apple-touch-icon" href="${LOGO_URL}">`),
-    'Apple touch icon must use the supplied HR for Health logo'
-  );
-  assert.ok(
-    html.includes(`src="${LOGO_URL}"`),
-    'Visible shortcut preview must use the supplied HR for Health logo'
-  );
-  assert.match(html, /href=["']\.\/styles\.css["']/i);
-  assert.match(html, /src=["']\.\/install\.js["']/i);
+  assert.match(html, /rel=["']apple-touch-icon["'][^>]+href=["']\.\/icons\/icon-192\.png["']/i);
+  assert.match(html, /class=["']brand-icon["'][^>]+src=["']\.\/icons\/icon-192\.png["']/i);
+  assert.match(html, /HR for Health/i);
   assert.match(html, /Add myHRFH to your phone/i);
   assert.match(html, /myhrfh\.com/i);
+  assert.match(html, /href=["']\.\/styles\.css["']/i);
+  assert.match(html, /src=["']\.\/install\.js["']/i);
+});
+
+test('styles use the HR for Health light, purple, orange, and coral visual system', async () => {
+  const css = await read('styles.css');
+  assert.match(css, /--brand-purple:\s*#4a0d7f/i);
+  assert.match(css, /--brand-purple-bright:\s*#8d4bd8/i);
+  assert.match(css, /--brand-orange:\s*#f6a13d/i);
+  assert.match(css, /--brand-coral:\s*#ff655e/i);
+  assert.match(css, /--page:\s*#f7f5f2/i);
+  assert.match(css, /--surface:\s*#ffffff/i);
 });
 
 test('install controller targets myHRFH and supports Android and iOS flows', async () => {
