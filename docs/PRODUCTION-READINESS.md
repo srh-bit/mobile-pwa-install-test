@@ -52,26 +52,49 @@ A normal web page cannot programmatically uninstall the PWA. The **Uninstall** m
 
 ## iPhone and iPad visual guidance
 
-The iOS manual-install experience uses a branded **guided overlay** rather than relying only on text instructions.
+The iOS manual-install experience uses a branded **confidence-aware guided overlay** rather than relying on text alone or pretending the webpage can inspect browser chrome.
+
+The installer separates guidance into two confidence levels:
+
+- **Exact edge cue** — used only where the current device/browser geometry is sufficiently stable to identify the Share-control edge with high confidence.
+- **Region / illustration cue** — used where browser settings can move the control and the page cannot read that setting. The popup shows a miniature browser-toolbar illustration and written guidance instead of pointing to a fake exact coordinate.
+
+### Safari
+
+- **iPhone Safari:** use the bottom browser-toolbar **region**, not a single fixed icon coordinate. The guidance says **Tap Share, or More (…) → Share** so it remains valid across Safari tab-layout variants where Share may be directly visible or available through More.
+- **iPad Safari:** use an exact top-right edge cue and a Safari toolbar illustration.
+- After opening the Share sheet, guide the user to **Add to Home Screen**, keep **Open as Web App** enabled when presented, and tap **Add**.
+- A collapsed **Can't find Add to Home Screen?** recovery hint explains **Edit Actions → Add to Home Screen** without adding default clutter.
+
+### Chrome
+
+- **iPhone Chrome portrait:** do **not** show an exact top/bottom edge arrow. Chrome allows the user to place the address bar at the top or bottom and normal webpage JavaScript cannot read that preference. Instead, show a miniature Chrome address bar with Share on its right and the instruction **Share is beside your address bar**.
+- **iPhone Chrome landscape:** the address bar is treated as a stable top-toolbar layout; use an exact top-right edge cue plus the toolbar illustration.
+- **iPad Chrome:** use the exact top-right edge cue plus the toolbar illustration.
+- The Chrome install path remains **Share → Add to Home Screen → Add**.
+
+### Guidance behavior
 
 - The page dims behind the HRFH guidance sheet.
-- A pulsing orange/coral spotlight and arrow point toward the nearest browser-toolbar edge where the Share control is expected.
-- The guide contains only two user actions: **Tap Share** and **Add to Home Screen**.
-- Chrome on iOS receives Chrome-specific visual guidance.
-- Safari receives Safari-specific visual guidance as the fallback.
-- iPad and landscape layouts move the guide toward the top-toolbar edge; portrait Safari uses the lower-toolbar edge where appropriate.
-- The guide recalculates when orientation or viewport size changes.
-- Reduced-motion users do not receive the pulsing animation.
+- Exact/region selection is recomputed when device orientation or viewport geometry changes.
+- The enhancement layer is idempotent: an unchanged device/browser/orientation state does not repeatedly rebuild the guide.
+- Reduced-motion users do not receive pulsing guide animation.
+- Instructions remain complete even if browser UI moves in a future release.
 
-This is visual guidance only. Web content cannot inspect, highlight, or manipulate Safari/Chrome browser chrome outside the page viewport, so the overlay points toward the relevant screen edge rather than falsely claiming access to the actual toolbar control. Browser UI can also move between versions or user settings; the instructions therefore remain usable even if the exact toolbar coordinate changes.
+The generic Web Share API (`navigator.share()`) is deliberately **not** used as the installation trigger. A page-level share sheet is not equivalent to the browser's own Share/Add-to-Home-Screen workflow and must not be presented as though it can install the PWA.
+
+Web content cannot inspect, highlight, or manipulate Safari/Chrome browser chrome outside the page viewport. Exact-looking cues therefore appear only for high-confidence edge layouts; all other cases use a region marker or miniature toolbar illustration rather than claiming direct access to the actual browser button.
 
 ## Browser and device matrix
 
-| Environment | Detection / install path | Installed management |
+| Environment | Detection / install path | iOS guidance confidence / installed management |
 | --- | --- | --- |
 | Android Chrome / supported Chromium | `getInstalledRelatedApps()` when available; verified install receipt continuity; otherwise `beforeinstallprompt`; browser-menu fallback | When positively confirmed: Open; Restore shortcut; Uninstall guidance |
-| iPhone / iPad Chrome | Chrome-specific guided overlay → Share → Add to Home Screen | Normal browser tabs cannot reliably confirm installation; no installed-only Restore/Uninstall controls |
-| iPhone / iPad Safari | Chrome-preferred handoff when available; Safari guided overlay → Share → Add to Home Screen fallback | Normal Safari tabs cannot reliably confirm installation; no installed-only Restore/Uninstall controls |
+| iPhone Chrome portrait | Chrome-specific Share → Add to Home Screen | Region/illustration only because address bar can be top or bottom; no installed-only Restore/Uninstall in ordinary browser tabs |
+| iPhone Chrome landscape | Chrome-specific Share → Add to Home Screen | Exact top-right edge cue + toolbar illustration; no installed-only Restore/Uninstall in ordinary browser tabs |
+| iPad Chrome | Chrome-specific Share → Add to Home Screen | Exact top-right edge cue + toolbar illustration; no installed-only Restore/Uninstall in ordinary browser tabs |
+| iPhone Safari | Chrome-preferred handoff when available; Safari Share or More → Share → Add to Home Screen | Bottom-toolbar region cue + Safari illustration; no installed-only Restore/Uninstall in ordinary browser tabs |
+| iPad Safari | Chrome-preferred handoff when available; Safari Share → Add to Home Screen | Exact top-right edge cue + Safari illustration; no installed-only Restore/Uninstall in ordinary browser tabs |
 | Windows Chrome | installed-related-app check; verified install receipt continuity; native install prompt | When positively confirmed: Open; `chrome://apps` → Create shortcut; uninstall guidance |
 | Windows Edge | installed-related-app check; verified install receipt continuity; native install prompt | When positively confirmed: Open; `edge://apps` → Create Desktop shortcut; uninstall guidance |
 | macOS Chrome / Edge | installed-related-app check when supported; verified install receipt continuity; native install prompt | When positively confirmed: Open; browser apps/shortcut management and uninstall guidance |
@@ -99,8 +122,9 @@ The service worker:
 - uses **network-first** behavior for navigations so public installer HTML and state logic refresh promptly;
 - uses cache-first behavior for stable same-origin static assets;
 - claims clients after activation and maintains a bounded app-shell cache;
-- uses release cache identity `myhrfh-installer-v2` for the guided-overlay release candidate;
-- includes explicit `desktop-installed-state-v2` and `ios-guided-overlay-v1` revision markers;
+- uses release cache identity `myhrfh-installer-v2` for the release candidate;
+- includes explicit `desktop-installed-state-v2`, `ios-guided-overlay-v1`, and `ios-guidance-v2` revision markers;
+- caches the separate `ios-guidance-v2.js` and `ios-guidance-v2.css` enhancement layer;
 - must be versioned/revised whenever install-state behavior or critical UI assets change.
 
 ## Production HTTP headers
@@ -135,8 +159,8 @@ The installer collects no credentials, authentication tokens, form data, analyti
 - Dialogs must expose a programmatic title and description.
 - The management dialog uses native `<dialog>` semantics where supported and includes a close action.
 - Live status messages use `aria-live` without excessive announcements.
-- Instructions must not rely on color alone; the iOS overlay combines arrow/shape, numbering, and text.
-- `prefers-reduced-motion` must disable nonessential animation, including the iOS spotlight pulse.
+- Instructions must not rely on color alone; the iOS guidance combines edge/toolbar illustration, numbering, iconography, and text.
+- `prefers-reduced-motion` must disable nonessential animation, including the iOS edge pulse.
 - Text should remain sentence case, concise, and understandable without technical PWA vocabulary where possible.
 
 ## Failure behavior
@@ -146,7 +170,9 @@ The installer collects no credentials, authentication tokens, form data, analyti
 - If a verified install receipt exists, wait for the bounded native-install-prompt window before using it as supplemental installed evidence.
 - If `beforeinstallprompt` fires, clear any stored receipt and render the native install state.
 - If Chrome handoff on iOS cannot complete, preserve the Safari fallback.
-- If the iOS toolbar position heuristic is imperfect, the two-step written guidance remains complete without depending on the spotlight location.
+- If an iOS toolbar location is not knowable, use region/illustration guidance instead of an exact arrow.
+- If Safari Share is not directly visible, the written **More (…) → Share** path remains complete.
+- If Add to Home Screen is missing from Safari actions, the collapsed **Edit Actions** recovery remains available.
 - If `beforeinstallprompt` never arrives, use the strongest remaining verified evidence or render browser-specific fallback guidance.
 - If the native install is cancelled, return control to the page without claiming success.
 - If an install completes and `appinstalled` fires, write the install receipt, render the Installed state, and show only management actions permitted by the current platform/capability gate.
@@ -158,6 +184,7 @@ The installer collects no credentials, authentication tokens, form data, analyti
 - No credentials, secrets, Salesforce access, or privileged APIs.
 - No attempt to bypass browser/OS install or uninstall consent.
 - No attempt to inspect browser chrome or device launcher contents.
+- No generic Web Share API masquerading as an installation API.
 - No downloadable configuration profiles, APK sideloading, or native package installation.
 
 ## Automated engineering acceptance
@@ -166,11 +193,12 @@ The release workflow must run these checks on the exact candidate commit:
 
 ```text
 node --check install.js
+node --check ios-guidance-v2.js
 node --check service-worker.js
 node --test tests/*.mjs
 ```
 
-The behavior suite covers the manifest contract, transparent icons, pre-paint launch behavior, Android/iOS/desktop detection, Chrome-first iOS flow, guided iOS visual guidance, relationship-sensitive installed-state triage, verified install-receipt continuity, condition-gated management actions, shortcut restoration, uninstall guidance, service-worker scope/freshness, accessibility hooks, privacy safeguards, and production/security documentation.
+The behavior suite covers the manifest contract, transparent icons, pre-paint launch behavior, Android/iOS/desktop detection, Chrome-first iOS flow, confidence-aware Safari/Chrome visual guidance, orientation/layout adaptation, idempotent guidance enhancement, Safari Open-as-Web-App/Edit-Actions recovery, relationship-sensitive installed-state triage, verified install-receipt continuity, condition-gated management actions, shortcut restoration, uninstall guidance, service-worker scope/freshness, accessibility hooks, privacy safeguards, and production/security documentation.
 
 ## Production deployment checklist
 
@@ -183,16 +211,20 @@ Before making the public URL the official HRFH install route:
 5. Verify the destination route requires normal HRFH authentication and the installer does not weaken authentication behavior.
 6. Test clean first-install, already-installed, legacy-installed-with-empty-related-app-result, deleted-shortcut-but-app-still-installed, cancelled-install, full uninstall, and reinstall on each supported platform.
 7. Verify a real standalone launch/appinstalled writes the receipt, a normal browser visit does not, and a later `beforeinstallprompt` clears it after uninstall.
-8. Test iOS Chrome and Safari in portrait and landscape, including iPad, and confirm the guided overlay points toward the appropriate toolbar edge without obscuring required controls.
-9. Test iOS with Chrome installed and without Chrome available.
-10. Test Android where Chrome mints a full web app and where the browser falls back to a badged shortcut.
-11. Test Windows Chrome and Edge both before and after deleting only the desktop shortcut.
-12. Test macOS Chrome/Edge and Safari Add to Dock.
-13. Verify Restore shortcut and Uninstall are absent in unknown/manual-install states and present only after positive installed-state confirmation on supported platforms.
-14. Verify keyboard-only use, screen-reader dialog labels, zoom/reflow, and reduced motion.
-15. Confirm no analytics, credentials, PII, or unexpected network requests are introduced.
-16. Run the complete repository validation suite and browser-script syntax checks on the exact release commit.
-17. Perform a final physical-device acceptance pass before publishing the production install link broadly.
+8. Test **iPhone Safari** with each available tab-layout style; confirm direct Share and More → Share guidance both remain understandable.
+9. Test **iPhone Chrome portrait** with the address bar at both top and bottom; confirm there is no false exact edge arrow and the toolbar illustration remains correct.
+10. Test **iPhone Chrome landscape** and verify the exact top-right cue aligns with the Share-control edge.
+11. Test **iPad Safari and Chrome** and verify the exact top-right cue plus toolbar illustration.
+12. Test Safari's **Open as Web App** path and the **Edit Actions → Add to Home Screen** recovery.
+13. Test iOS with Chrome installed and without Chrome available.
+14. Test Android where Chrome mints a full web app and where the browser falls back to a badged shortcut.
+15. Test Windows Chrome and Edge both before and after deleting only the desktop shortcut.
+16. Test macOS Chrome/Edge and Safari Add to Dock.
+17. Verify Restore shortcut and Uninstall are absent in unknown/manual-install states and present only after positive installed-state confirmation on supported platforms.
+18. Verify keyboard-only use, screen-reader dialog labels, zoom/reflow, and reduced motion.
+19. Confirm no analytics, credentials, PII, generic share-install workaround, or unexpected network requests are introduced.
+20. Run the complete repository validation suite and all browser-script syntax checks on the exact release commit.
+21. Perform a final physical-device acceptance pass before publishing the production install link broadly.
 
 ## Release decision
 
