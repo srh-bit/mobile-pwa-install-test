@@ -24,4 +24,4 @@ jobs:
           node-version: '22'
           package-manager-cache: false
       - name: Run repository validation
-        run: node --test tests/validate.mjs
+        run: node --test tests/*.mjs
