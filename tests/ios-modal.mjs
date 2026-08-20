@@ -30,6 +30,6 @@ test('iOS installer uses an automatic branded modal instead of inline setup step
 
 test('service worker refreshes the cached shell for the iOS modal build', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const BUILD_REVISION = ['"]ios-install-modal-v1['"]/);
+  assert.match(worker, /const IOS_MODAL_REVISION = ['"]ios-install-modal-v1['"]/);
   assert.match(worker, /\.\/ios-modal\.css/);
 });
