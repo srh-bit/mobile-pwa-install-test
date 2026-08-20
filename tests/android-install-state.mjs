@@ -36,14 +36,15 @@ test('accepted Android install writes the receipt immediately', async () => {
   assert.match(clickHandler, /choice\.outcome\s*===\s*['"]accepted['"][\s\S]*writeInstallReceipt\(\)[\s\S]*setInstalledState\(/);
 });
 
-test('confirmed Android PWA exposes restore and no uninstall action', async () => {
+test('confirmed Android PWA shows Open and Reinstall without restore or uninstall actions', async () => {
   const html = await read('index.html');
   const js = await read('install.js');
   const availability = js.match(/function getInstalledManagementAvailability\([^)]*\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
-  assert.match(html, /Restore Home Screen shortcut/i);
   assert.doesNotMatch(html, /id=["']uninstall-button["']/i);
-  assert.match(availability, /isAndroid\(\)[\s\S]*restore:\s*true/);
-  assert.match(js, /Open your app list and find myHRFH/i);
+  assert.match(availability, /isAndroid\(\)[^\n]*restore:\s*false/i);
+  const installedState = js.match(/function setInstalledState\([^)]*\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
+  assert.doesNotMatch(installedState, /Restore Home Screen shortcut/i);
+  assert.match(installedState, /Reinstall/i);
 });
 
 test('Android fallback remains browser install rather than an unverifiable bookmark', async () => {
