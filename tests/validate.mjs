@@ -46,6 +46,14 @@ test('install controller targets myHRFH and supports Android and iOS flows', asy
   assert.match(js, /\.\/service-worker\.js/);
 });
 
+test('installed shortcut immediately forwards to myHRFH instead of rendering installer', async () => {
+  const js = await read('install.js');
+  assert.match(
+    js,
+    /if\s*\(isStandalone\(\)\)\s*\{\s*window\.location\.replace\(MYHRFH_URL\);\s*return;\s*\}/s
+  );
+});
+
 test('manifest does not attempt a cross-origin myHRFH start_url or scope', async () => {
   const manifest = await readManifest();
   assert.doesNotMatch(manifest.start_url, /myhrfh\.com/i);
