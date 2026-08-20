@@ -42,13 +42,20 @@ final class NativeManagementBridge extends CustomTabsCallback {
 
     @Override
     public void onRelationshipValidationResult(int relation, Uri requestedOrigin, boolean result, Bundle extras) {
-        if (relation == CustomTabsService.RELATION_USE_AS_ORIGIN
-                && result
-                && requestedOrigin != null
-                && sameOrigin(requestedOrigin.toString(), trustedOrigin.toString())) {
-            relationshipValidated = true;
-            maybeRequestMessageChannel();
+        if (relation != CustomTabsService.RELATION_USE_AS_ORIGIN
+                || requestedOrigin == null
+                || !sameOrigin(requestedOrigin.toString(), trustedOrigin.toString())) {
+            return;
         }
+
+        relationshipValidated = result;
+        if (!result) {
+            channelReady = false;
+            channelRequested = false;
+            return;
+        }
+
+        maybeRequestMessageChannel();
     }
 
     @Override

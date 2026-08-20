@@ -7,6 +7,10 @@ def applicationIdValue = providers.gradleProperty('HRFH_ANDROID_APPLICATION_ID')
 def trustedOrigin = providers.gradleProperty('HRFH_TWA_ORIGIN')
         .getOrElse('https://myhrfh.com')
 
+if (trustedOrigin != 'https://myhrfh.com') {
+    throw new GradleException('HRFH_TWA_ORIGIN must remain fixed to https://myhrfh.com')
+}
+
 android {
     namespace 'com.hrforhealth.myhrfh'
     compileSdk 36
