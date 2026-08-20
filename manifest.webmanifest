@@ -12,7 +12,7 @@
   "related_applications": [
     {
       "platform": "webapp",
-      "url": "./manifest.webmanifest",
+      "url": "https://srh-bit.github.io/mobile-pwa-install-test/manifest.webmanifest",
       "id": "https://srh-bit.github.io/mobile-pwa-install-test/"
     }
   ],

@@ -56,9 +56,10 @@ test('public installer includes privacy and indexing safeguards without iOS cali
   assert.doesNotMatch(guidanceJs, /sessionStorage|localStorage/i);
 });
 
-test('service worker uses production navigation freshness and v8 PWA-only release identity', async () => {
+test('service worker uses production navigation freshness and v9 transparent-icon PWA-only release identity', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v8['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v9['"]/);
+  assert.match(worker, /hrfh-transparent-icon-v1/i);
   assert.match(worker, /android-pwa-recovery-v2/i);
   assert.match(worker, /ios-final-guidance-v2/i);
   assert.match(worker, /production-readiness-v2/i);
