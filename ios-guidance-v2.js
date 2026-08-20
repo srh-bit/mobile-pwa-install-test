@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const GUIDANCE_REVISION = 'ios-final-guidance-v1';
+  const GUIDANCE_REVISION = 'ios-final-guidance-v2';
 
   const modal = document.getElementById('ios-install-modal');
   const toolbarGuide = document.getElementById('ios-toolbar-guide');
@@ -61,9 +61,10 @@
   function moreSymbol(extraClass = '') {
     return `<span class="ios-symbol-shell ios-more-symbol ${extraClass}" aria-hidden="true">
       <svg viewBox="0 0 24 24" focusable="false">
-        <circle cx="5" cy="12" r="1.65" fill="currentColor" stroke="none" />
-        <circle cx="12" cy="12" r="1.65" fill="currentColor" stroke="none" />
-        <circle cx="19" cy="12" r="1.65" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="12" r="10" fill="none" />
+        <circle cx="6.5" cy="12" r="1.45" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="12" r="1.45" fill="currentColor" stroke="none" />
+        <circle cx="17.5" cy="12" r="1.45" fill="currentColor" stroke="none" />
       </svg>
     </span>`;
   }
@@ -98,7 +99,7 @@
         browser: 'Safari',
         edge: 'bottom-region',
         showMoreAlternative: true,
-        stepOne: 'Tap Share. If Share is not visible, tap More (…) then Share.',
+        stepOne: "Tap Share, or More if Share isn't shown. Then choose Share.",
         note: 'Choose Add to Home Screen, keep Open as Web App on when shown, then tap Add.'
       };
     }
@@ -210,7 +211,7 @@
     if (modalTitle) modalTitle.textContent = 'Add HRFH web app';
     if (modalCopy) {
       modalCopy.textContent = profile.browser === 'Safari' && profile.showMoreAlternative
-        ? 'Tap Share, or More (…) then Share, and choose Add to Home Screen.'
+        ? "Tap Share, or More if Share isn't shown. Then choose Share, then Add to Home Screen."
         : 'Tap Share, then choose Add to Home Screen.';
     }
 
