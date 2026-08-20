@@ -4,38 +4,94 @@ const installButton = document.getElementById('install-button');
 const openButton = document.getElementById('open-button');
 const platformContent = document.getElementById('platform-content');
 const statusMessage = document.getElementById('status-message');
+const pageTitle = document.getElementById('page-title');
+const introCopy = document.getElementById('intro-copy');
 const card = document.querySelector('.install-card');
 
 let deferredInstallPrompt = null;
+
+function userAgent() {
+  return navigator.userAgent || '';
+}
+
+function platformName() {
+  return navigator.userAgentData?.platform || navigator.platform || '';
+}
 
 function isStandalone() {
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 }
 
 function isIOS() {
-  const ua = navigator.userAgent || '';
-  const classicIOS = /iPad|iPhone|iPod/.test(ua);
-  const desktopModeIPad = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+  const ua = userAgent();
+  const platform = platformName();
+  const classicIOS = /iPad|iPhone|iPod/i.test(ua) || /iPad|iPhone|iPod/i.test(platform);
+  const desktopModeIPad = /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
   return classicIOS || desktopModeIPad;
 }
 
+function isAndroid() {
+  return /Android/i.test(userAgent()) || /Android/i.test(platformName());
+}
+
+function isWindows() {
+  return /Windows/i.test(userAgent()) || /Win/i.test(platformName());
+}
+
+function isMacOS() {
+  if (isIOS()) {
+    return false;
+  }
+  return /Macintosh|Mac OS X/i.test(userAgent()) || /Mac/i.test(platformName());
+}
+
 function isIOSSafari() {
-  const ua = navigator.userAgent || '';
+  const ua = userAgent();
   return isIOS() && /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
+}
+
+function isDesktopSafari() {
+  const ua = userAgent();
+  return isMacOS() && /Safari/i.test(ua) && !/Chrome|Chromium|CriOS|Edg|OPR|Firefox|FxiOS/i.test(ua);
+}
+
+function environment() {
+  if (isIOS()) return 'ios';
+  if (isAndroid()) return 'android';
+  if (isWindows()) return 'windows';
+  if (isMacOS()) return 'macos';
+  return 'desktop';
+}
+
+function isMobileEnvironment() {
+  const current = environment();
+  return current === 'ios' || current === 'android';
 }
 
 function setStatus(message = '') {
   statusMessage.textContent = message;
 }
 
-function setInstalledState(message = 'HRFH web app added.') {
+function applyEnvironmentCopy() {
+  if (isMobileEnvironment()) {
+    pageTitle.textContent = 'Add the HRFH web app';
+    introCopy.textContent = 'Your HR for Health portal, one tap from your home screen.';
+    return;
+  }
+
+  pageTitle.textContent = 'Install the HRFH web app';
+  introCopy.textContent = 'Your HR for Health portal, ready from this computer.';
+}
+
+function setInstalledState(message = 'HRFH web app installed.') {
   deferredInstallPrompt = null;
   installButton.hidden = true;
   card.classList.add('installed');
   openButton.textContent = 'Open myHRFH';
   openButton.href = MYHRFH_URL;
+  const launchPlace = isMobileEnvironment() ? 'your home screen' : 'your apps';
   platformContent.innerHTML = `
-    <p><strong>${message}</strong><br>Open it from your home screen anytime.</p>
+    <p><strong>${message}</strong><br>Open it anytime from ${launchPlace}.</p>
   `;
 }
 
@@ -66,11 +122,59 @@ function renderIOSInstructions() {
   setStatus();
 }
 
-function renderFallback() {
+function renderAndroidFallback() {
+  installButton.hidden = true;
   platformContent.innerHTML = `
     <p><strong>Add the HRFH web app.</strong><br>Use your browser menu and choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.</p>
   `;
+  setStatus();
+}
+
+function renderDesktopFallback() {
   installButton.hidden = true;
+
+  if (isDesktopSafari()) {
+    platformContent.innerHTML = `
+      <p><strong>Add the HRFH web app to your Mac.</strong><br>In Safari, choose <strong>File → Add to Dock</strong>, then click Add.</p>
+    `;
+    setStatus();
+    return;
+  }
+
+  platformContent.innerHTML = `
+    <p><strong>Install the HRFH web app from your browser menu.</strong><br>Look for <strong>Install app</strong> or the install icon to add it to this computer.</p>
+  `;
+  setStatus();
+}
+
+function renderFallback() {
+  if (environment() === 'ios') {
+    renderIOSInstructions();
+    return;
+  }
+
+  if (environment() === 'android') {
+    renderAndroidFallback();
+    return;
+  }
+
+  renderDesktopFallback();
+}
+
+function renderInstallReady() {
+  installButton.hidden = false;
+  installButton.textContent = 'Install HRFH web app';
+
+  if (isAndroid()) {
+    platformContent.innerHTML = `
+      <p><strong>Ready to install.</strong><br>Install the HRFH web app for quick access from your home screen.</p>
+    `;
+  } else {
+    platformContent.innerHTML = `
+      <p><strong>Ready to install.</strong><br>Install the HRFH web app for quick access from this computer.</p>
+    `;
+  }
+
   setStatus();
 }
 
@@ -81,6 +185,8 @@ function renderInitialState() {
     window.location.replace(MYHRFH_URL);
     return;
   }
+
+  applyEnvironmentCopy();
 
   if (isIOS()) {
     renderIOSInstructions();
@@ -93,11 +199,8 @@ function renderInitialState() {
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
   deferredInstallPrompt = event;
-  installButton.hidden = false;
-  platformContent.innerHTML = `
-    <p><strong>Ready to add.</strong><br>Install the HRFH web app for quick access from your home screen.</p>
-  `;
-  setStatus();
+  applyEnvironmentCopy();
+  renderInstallReady();
 });
 
 installButton.addEventListener('click', async () => {
@@ -127,7 +230,7 @@ installButton.addEventListener('click', async () => {
 
 window.addEventListener('appinstalled', () => {
   setInstalledState();
-  setStatus('Added successfully.');
+  setStatus('Installed successfully.');
 });
 
 window.addEventListener('load', () => {
