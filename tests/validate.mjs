@@ -110,3 +110,8 @@ test('service worker never proxies or caches myHRFH and enforces same origin', a
   assert.match(worker, /request\.method\s*!==\s*['"]GET['"]/);
   assert.match(worker, /url\.origin\s*!==\s*self\.location\.origin/);
 });
+
+test('service worker rotates cache after branded native icon replacement', async () => {
+  const worker = await read('service-worker.js');
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-shortcut-test-v5['"]/);
+});
