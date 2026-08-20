@@ -14,7 +14,7 @@ The service worker handles only same-origin GET requests in its configured scope
 
 Supported Android Chrome may expose `navigator.getInstalledRelatedApps()` for a self-related PWA. A positive result is installed-PWA evidence. When that supported probe completes successfully with no matching self-PWA on Android, the installer may clear its stale same-origin fallback receipt and return to the install path. Probe absence/errors remain unknown rather than falsely claiming removal.
 
-The browser can determine PWA installation state in supported cases, but a website **cannot inspect or verify the Android Home Screen or launcher icon itself**. Restore therefore provides user-controlled launcher steps only; it does not access launcher databases, hidden APIs, device packages, or privileged operating-system state.
+The browser can determine PWA installation state in supported cases, but a website **cannot inspect or verify the Android Home Screen or launcher icon itself**. The Android installer therefore does not expose a Restore control or attempt launcher inspection, hidden APIs, package access, or other privileged operating-system behavior.
 
 There is no Uninstall action in the installer. Removal remains entirely under browser/operating-system control.
 
