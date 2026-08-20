@@ -1,4 +1,4 @@
-const CACHE_NAME = 'myhrfh-shortcut-test-v8';
+const CACHE_NAME = 'myhrfh-installer-v1';
 const BUILD_REVISION = 'desktop-installed-state-v1';
 const IOS_MODAL_REVISION = 'ios-install-modal-v1';
 const IOS_BROWSER_REVISION = 'ios-chrome-priority-v1';
