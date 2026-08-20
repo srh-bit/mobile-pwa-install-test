@@ -2,6 +2,7 @@ const CACHE_NAME = 'myhrfh-shortcut-test-v8';
 const BUILD_REVISION = 'desktop-installed-state-v1';
 const IOS_MODAL_REVISION = 'ios-install-modal-v1';
 const IOS_BROWSER_REVISION = 'ios-chrome-priority-v1';
+const PRODUCTION_REVISION = 'production-readiness-v1';
 const APP_SHELL = [
   './',
   './index.html',
@@ -13,6 +14,16 @@ const APP_SHELL = [
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
+
+function cacheResponse(request, response) {
+  if (!response || response.status !== 200 || response.type !== 'basic') {
+    return response;
+  }
+
+  const copy = response.clone();
+  caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+  return response;
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -42,15 +53,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(request).then((cached) => cached || fetch(request).then((response) => {
-      if (!response || response.status !== 200 || response.type !== 'basic') {
-        return response;
-      }
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => cacheResponse(request, response))
+        .catch(() => caches.match(request).then((cached) => cached || caches.match('./index.html')))
+    );
+    return;
+  }
 
-      const copy = response.clone();
-      caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-      return response;
-    }))
+  event.respondWith(
+    caches.match(request).then((cached) => cached || fetch(request).then((response) => cacheResponse(request, response)))
   );
 });
