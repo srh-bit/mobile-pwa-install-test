@@ -10,6 +10,11 @@
     (() => {
       const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
       if (standalone) {
+        try {
+          window.localStorage.setItem('myhrfh-install-receipt-v1', 'installed');
+        } catch {
+          // Storage may be restricted; standalone launch should still continue.
+        }
         window.location.replace('https://myhrfh.com');
       }
     })();
