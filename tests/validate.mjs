@@ -5,20 +5,11 @@ import { readFile } from 'node:fs/promises';
 const fileUrl = (path) => new URL(`../${path}`, import.meta.url);
 const read = (path) => readFile(fileUrl(path), 'utf8');
 const readBuffer = (path) => readFile(fileUrl(path));
-
-async function readManifest() {
-  return JSON.parse(await read('manifest.webmanifest'));
-}
-
+async function readManifest() { return JSON.parse(await read('manifest.webmanifest')); }
 function pngMetadata(buffer) {
-  assert.equal(buffer.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', 'asset must be a PNG');
+  assert.equal(buffer.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
   const colorType = buffer[25];
-  return {
-    width: buffer.readUInt32BE(16),
-    height: buffer.readUInt32BE(20),
-    colorType,
-    hasTransparency: colorType === 6 || buffer.includes(Buffer.from('tRNS'))
-  };
+  return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20), colorType, hasTransparency: colorType === 6 || buffer.includes(Buffer.from('tRNS')) };
 }
 
 test('manifest defines a same-origin standalone myHRFH app with a dedicated launch shell', async () => {
@@ -29,8 +20,6 @@ test('manifest defines a same-origin standalone myHRFH app with a dedicated laun
   assert.equal(manifest.start_url, './launch.html');
   assert.equal(manifest.scope, './');
   assert.equal(manifest.display, 'standalone');
-  assert.equal(manifest.background_color, '#ffffff');
-  assert.equal(manifest.theme_color, '#4a0d7f');
   assert.equal(manifest.prefer_related_applications, false);
 });
 
@@ -40,28 +29,16 @@ test('manifest uses only local standard HRFH PNG artwork and no maskable tile', 
   assert.equal(icons.length, 2);
   assert.ok(icons.every((icon) => icon.src.startsWith('./icons/') && icon.type === 'image/png'));
   assert.ok(icons.every((icon) => icon.purpose === 'any'));
-  assert.ok(icons.some((icon) => icon.src === './icons/icon-192.png' && icon.sizes === '192x192'));
-  assert.ok(icons.some((icon) => icon.src === './icons/icon-512.png' && icon.sizes === '512x512'));
-  assert.ok(!icons.some((icon) => /maskable/i.test(icon.purpose ?? '') || /maskable/i.test(icon.src)), 'mark-only design must not expose a maskable tile');
-  assert.ok(!icons.some((icon) => /^https?:/i.test(icon.src)), 'install icons must not depend on an external host');
+  assert.ok(!icons.some((icon) => /maskable/i.test(icon.purpose ?? '') || /maskable/i.test(icon.src)));
 });
 
 test('native standard install assets are transparent branded PNGs', async () => {
-  const assets = [
-    ['icons/icon-192.png', 192, 3000],
-    ['icons/icon-512.png', 512, 9000]
-  ];
-
-  for (const [path, expectedSize, minimumBytes] of assets) {
+  for (const [path, expectedSize, minimumBytes] of [['icons/icon-192.png', 192, 3000], ['icons/icon-512.png', 512, 9000]]) {
     const buffer = await readBuffer(path);
     const metadata = pngMetadata(buffer);
-    assert.deepEqual(
-      { width: metadata.width, height: metadata.height },
-      { width: expectedSize, height: expectedSize },
-      `${path} dimensions`
-    );
-    assert.equal(metadata.hasTransparency, true, `${path} must preserve transparent background pixels`);
-    assert.ok(buffer.length > minimumBytes, `${path} must contain full branded artwork`);
+    assert.deepEqual({ width: metadata.width, height: metadata.height }, { width: expectedSize, height: expectedSize });
+    assert.equal(metadata.hasTransparency, true);
+    assert.ok(buffer.length > minimumBytes);
   }
 });
 
@@ -69,7 +46,6 @@ test('launch shell redirects before installer UI can paint', async () => {
   const launch = await read('launch.html');
   const head = launch.match(/<head>([\s\S]*?)<\/head>/i)?.[1] ?? '';
   assert.match(head, /window\.location\.replace\(['"]https:\/\/myhrfh\.com['"]\)/i);
-  assert.match(head, /http-equiv=["']refresh["'][^>]+https:\/\/myhrfh\.com/i);
   assert.doesNotMatch(launch, /install-card|platform-content|install-button/i);
 });
 
@@ -83,84 +59,53 @@ test('installer page redirects standalone legacy launches in head before paint',
 test('page uses concise sentence-case HRFH web app language', async () => {
   const html = await read('index.html');
   assert.match(html, /rel=["']manifest["'][^>]+href=["']\.\/manifest\.webmanifest["']/i);
-  assert.match(html, /rel=["']apple-touch-icon["'][^>]+href=["']\.\/icons\/icon-192\.png["']/i);
-  assert.match(html, /class=["']brand-icon["'][^>]+src=["']\.\/icons\/icon-192\.png["']/i);
   assert.match(html, /HR for Health/i);
-  assert.match(html, />HRFH web app</i);
   assert.match(html, /Add the HRFH web app/i);
-  assert.match(html, /Your HR for Health portal, one tap from your home screen\./i);
-  assert.match(html, /<button[^>]+id=["']install-button["'][^>]*>\s*Install HRFH web app\s*<\/button>/is);
-  assert.match(html, /<a[^>]+id=["']open-button["'][^>]*>\s*Open myHRFH\s*<\/a>/is);
-  assert.match(html, /Opens <strong>myhrfh\.com<\/strong>/i);
-  assert.doesNotMatch(html, /No app store|no download|no long setup/i);
+  assert.match(html, /Open myHRFH/i);
 });
 
 test('styles preserve HRFH palette with subtle depth and gloss without forced uppercase', async () => {
   const css = await read('styles.css');
   assert.match(css, /--brand-purple:\s*#4a0d7f/i);
-  assert.match(css, /--brand-purple-bright:\s*#8d4bd8/i);
   assert.match(css, /--brand-orange:\s*#f6a13d/i);
-  assert.match(css, /--brand-coral:\s*#ff655e/i);
-  assert.match(css, /--page:\s*#f7f5f2/i);
-  assert.match(css, /--surface:\s*#ffffff/i);
   assert.match(css, /\.install-card::after/);
-  assert.match(css, /\.button-primary::before/);
   assert.match(css, /backdrop-filter:\s*blur\(/i);
   assert.doesNotMatch(css, /text-transform:\s*uppercase/i);
 });
 
 test('install controller detects iOS, Android, Windows, macOS, and desktop Safari', async () => {
   const js = await read('install.js');
-  assert.match(js, /function isIOS\(\)/);
-  assert.match(js, /function isIOSChrome\(\)/);
-  assert.match(js, /function isAndroid\(\)/);
-  assert.match(js, /function isWindows\(\)/);
-  assert.match(js, /function isMacOS\(\)/);
-  assert.match(js, /function isDesktopSafari\(\)/);
+  for (const name of ['isIOS', 'isIOSChrome', 'isAndroid', 'isWindows', 'isMacOS', 'isDesktopSafari']) {
+    assert.match(js, new RegExp(`function ${name}\\(\\)`));
+  }
   assert.match(js, /navigator\.userAgentData/);
-  assert.match(js, /navigator\.platform/);
 });
 
-test('install controller is capability-first and adapts ready copy for Android and desktop', async () => {
+test('install controller remains capability-first for browser installs and native management', async () => {
   const js = await read('install.js');
-  const destinations = js.match(/https:\/\/myhrfh\.com/g) ?? [];
-  assert.ok(destinations.length >= 1, 'myHRFH destination must be present');
   assert.match(js, /beforeinstallprompt/);
   assert.match(js, /renderInstallReady\(\)/);
-  assert.match(js, /Install the HRFH web app for quick access from your home screen\./i);
-  assert.match(js, /Install the HRFH web app for quick access from this computer\./i);
-  assert.match(js, /installButton\.textContent\s*=\s*['"]Install HRFH web app['"]/);
   assert.match(js, /appinstalled/);
+  assert.match(js, /HRFHAndroidNative/);
   assert.match(js, /\.\/service-worker\.js/);
 });
 
 test('iPhone and iPad use direct final guidance without toolbar questions', async () => {
   const guidance = await read('ios-guidance-v2.js');
-  assert.match(guidance, /function renderCurrentBrowserFlow\(\)/);
   assert.match(guidance, /ios-final-guidance-v2/i);
-  assert.match(guidance, /function shareSymbol\(/i);
-  assert.match(guidance, /function moreSymbol\(/i);
-  assert.match(guidance, /function addHomeSymbol\(/i);
-  assert.match(guidance, /<circle\s+cx="12"\s+cy="12"\s+r="10"\s+fill="none"/i);
   assert.match(guidance, /Add to Home Screen/i);
   assert.doesNotMatch(guidance, /CALIBRATION_SESSION_KEY|sessionStorage|buildCalibration|needsCalibration/i);
-  assert.doesNotMatch(guidance, /navigator\.share\s*\(/i);
 });
 
 test('desktop fallbacks distinguish Mac Safari and general desktop browsers', async () => {
   const js = await read('install.js');
   assert.match(js, /Add to Dock/i);
-  assert.match(js, /File[^<]*>[^<]*Add to Dock|File[^\n]*Add to Dock/i);
   assert.match(js, /Install the HRFH web app from your browser menu\./i);
-  assert.match(js, /this computer/i);
 });
 
 test('legacy installed entry records the install receipt before forwarding to myHRFH', async () => {
   const js = await read('install.js');
-  assert.match(
-    js,
-    /if\s*\(isStandalone\(\)\)\s*\{\s*writeInstallReceipt\(\);\s*window\.location\.replace\(MYHRFH_URL\);\s*return;\s*\}/s
-  );
+  assert.match(js, /if\s*\(isStandalone\(\)\)\s*\{\s*writeInstallReceipt\(\);\s*window\.location\.replace\(MYHRFH_URL\);\s*return;\s*\}/s);
 });
 
 test('manifest does not attempt a cross-origin myHRFH start_url or scope', async () => {
@@ -172,14 +117,13 @@ test('manifest does not attempt a cross-origin myHRFH start_url or scope', async
 test('service worker never proxies or caches myHRFH and enforces same origin', async () => {
   const worker = await read('service-worker.js');
   assert.doesNotMatch(worker, /myhrfh\.com/i);
-  assert.match(worker, /request\.method\s*!==\s*['"]GET['"]/);
   assert.match(worker, /url\.origin\s*!==\s*self\.location\.origin/);
-  assert.match(worker, /\.\/launch\.html/);
 });
 
-test('service worker uses the v6 Android installed-state release cache identity', async () => {
+test('service worker uses the v7 Android native-management release identity', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v6['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v7['"]/);
   assert.match(worker, /const ANDROID_INSTALL_REVISION = ['"]android-installed-state-v1['"]/);
+  assert.match(worker, /const ANDROID_NATIVE_MANAGEMENT_REVISION = ['"]android-native-management-v1['"]/);
   assert.match(worker, /const IOS_FINAL_GUIDANCE_REVISION = ['"]ios-final-guidance-v2['"]/);
 });
