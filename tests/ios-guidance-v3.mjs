@@ -6,12 +6,13 @@ const fileUrl = (path) => new URL(`../${path}`, import.meta.url);
 const read = (path) => readFile(fileUrl(path), 'utf8');
 
 test('iOS stays in the current browser instead of forcing a Chrome handoff', async () => {
-  const install = await read('install.js');
+  const js = await read('ios-guidance-v2.js');
 
-  assert.match(install, /function renderIOSInstructions\(\)[\s\S]*isIOSChrome\(\)[\s\S]*renderIOSChromeInstructions\(\)/i);
-  assert.match(install, /function renderIOSInstructions\(\)[\s\S]*isIOSSafari\(\)[\s\S]*renderIOSSafariInstructions\(\)/i);
-  assert.doesNotMatch(install, /function renderIOSInstructions\(\)[\s\S]{0,500}renderIOSChromePriority\(\)/i);
-  assert.match(install, /current browser|this browser/i);
+  assert.match(js, /function renderCurrentBrowserFlow\(/i);
+  assert.match(js, /isIOSChrome\(\)[\s\S]*Chrome/i);
+  assert.match(js, /isIOSSafari\(\)[\s\S]*Safari/i);
+  assert.match(js, /current browser|this browser/i);
+  assert.doesNotMatch(js, /googlechromes?:/i);
 });
 
 test('ambiguous iPhone layouts use one-tap calibration instead of guessed coordinates', async () => {
@@ -53,7 +54,7 @@ test('iOS calibration remains private, disposable, and reconfigurable', async ()
 });
 
 test('v3 coachmark styling supports safe areas, calibration controls, and reduced motion', async () => {
-  const css = await read('ios-guidance-v2.css');
+  const css = await read('ios-guidance-v3.css');
 
   assert.match(css, /ios-v3-calibration/i);
   assert.match(css, /ios-v3-coachmark/i);
