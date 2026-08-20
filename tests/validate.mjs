@@ -23,6 +23,7 @@ test('manifest defines a same-origin standalone myHRFH app with HRFH theme', asy
   const manifest = await readManifest();
   assert.equal(manifest.name, 'myHRFH');
   assert.equal(manifest.short_name, 'myHRFH');
+  assert.equal(manifest.id, './');
   assert.equal(manifest.start_url, './');
   assert.equal(manifest.scope, './');
   assert.equal(manifest.display, 'standalone');
@@ -72,7 +73,7 @@ test('page uses concise sentence-case HRFH web app language', async () => {
   assert.match(html, /HR for Health/i);
   assert.match(html, />HRFH web app</i);
   assert.match(html, /Add the HRFH web app/i);
-  assert.match(html, /Your HR for Health portal, one tap from your Home Screen\./i);
+  assert.match(html, /Your HR for Health portal, one tap from your home screen\./i);
   assert.match(html, />Add HRFH web app</i);
   assert.match(html, />Open myHRFH</i);
   assert.match(html, /Opens <strong>myhrfh\.com<\/strong>/i);
