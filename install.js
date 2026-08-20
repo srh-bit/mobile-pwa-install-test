@@ -1,5 +1,4 @@
 const MYHRFH_URL = 'https://myhrfh.com';
-const APP_LAUNCH_URL = './launch.html';
 
 const installButton = document.getElementById('install-button');
 const openButton = document.getElementById('open-button');
@@ -142,7 +141,7 @@ function setInstalledState(message = 'HRFH web app installed.') {
   installButton.hidden = true;
   card.classList.add('installed');
   openButton.textContent = 'Open HRFH web app';
-  openButton.href = APP_LAUNCH_URL;
+  openButton.href = './launch.html';
   const launchPlace = isMobileEnvironment() ? 'your home screen' : 'your apps';
   platformContent.innerHTML = `
     <p><strong>${message}</strong><br>Open it anytime from ${launchPlace}.</p>
@@ -162,7 +161,7 @@ function renderIOSInstructions() {
   installButton.hidden = false;
   installButton.textContent = 'Show install steps';
   platformContent.innerHTML = `
-    <p><strong>Ready to add.</strong><br>Follow the iPhone popup to add the HRFH web app to your home screen.</p>
+    <p><strong>Add the HRFH web app in two quick steps.</strong><br>Follow the iPhone popup to add it to your home screen.</p>
   `;
   setStatus();
   showIOSInstallModal();
