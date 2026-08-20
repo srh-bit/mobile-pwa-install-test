@@ -49,9 +49,10 @@ test('Chrome portrait guidance does not claim an exact edge when the address bar
 test('iOS guidance observer is idempotent for an unchanged browser and orientation state', async () => {
   const js = await read('ios-guidance-v2.js');
 
-  assert.match(js, /lastSignature|iosGuidanceSignature/i);
-  assert.match(js, /if\s*\([^)]*signature[^)]*===?[^)]*\)\s*\{?\s*return/i);
-  assert.match(js, /applying/i);
+  assert.match(js, /let\s+lastSignature\s*=\s*['"][^'"]*['"]/i);
+  assert.match(js, /signature\s*===\s*lastSignature/i);
+  assert.match(js, /isEnhancementIntact\(profile\)/i);
+  assert.match(js, /if\s*\(applying\)\s*\{\s*return;/s);
 });
 
 test('release cache includes the v2 iOS guidance assets', async () => {
