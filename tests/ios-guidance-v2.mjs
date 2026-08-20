@@ -64,5 +64,5 @@ test('release cache includes final iOS guidance assets', async () => {
   assert.match(worker, /ios-guidance-v2\.js/i);
   assert.match(worker, /ios-guidance-v3\.css/i);
   assert.match(worker, /ios-final-guidance-v2/i);
-  assert.match(worker, /myhrfh-installer-v5/i);
+  assert.match(worker, /myhrfh-installer-v6/i);
 });
