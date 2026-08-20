@@ -23,8 +23,9 @@ test('iOS installer keeps the automatic branded modal while final guidance owns 
   assert.doesNotMatch(coreJs, /navigator\.share\s*\(/, 'Web Share must not be presented as an Add to Home Screen shortcut');
 
   assert.match(guidanceJs, /function renderCurrentBrowserFlow\(/);
-  assert.match(guidanceJs, /ios-final-guidance-v1/i);
+  assert.match(guidanceJs, /ios-final-guidance-v2/i);
   assert.match(guidanceJs, /browserActions\.hidden\s*=\s*true/);
+  assert.match(guidanceJs, /<circle\s+cx="12"\s+cy="12"\s+r="10"\s+fill="none"/i);
   assert.doesNotMatch(guidanceJs, /no browser switch is required/i);
   assert.doesNotMatch(guidanceJs, /googlechromes?:/i);
 
@@ -37,8 +38,8 @@ test('service worker refreshes the cached shell for final iOS guidance', async (
   const worker = await read('service-worker.js');
   assert.match(worker, /const IOS_MODAL_REVISION = ['"]ios-install-modal-v1['"]/);
   assert.match(worker, /const IOS_BROWSER_REVISION = ['"]ios-current-browser-v1['"]/);
-  assert.match(worker, /const IOS_FINAL_GUIDANCE_REVISION = ['"]ios-final-guidance-v1['"]/);
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v4['"]/);
+  assert.match(worker, /const IOS_FINAL_GUIDANCE_REVISION = ['"]ios-final-guidance-v2['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v5['"]/);
   assert.match(worker, /\.\/ios-modal\.css/);
   assert.match(worker, /\.\/ios-guidance-v3\.css/);
 });
