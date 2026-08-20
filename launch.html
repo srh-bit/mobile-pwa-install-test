@@ -6,7 +6,17 @@
   <meta name="theme-color" content="#4a0d7f">
   <title>Opening myHRFH</title>
   <script>
-    window.location.replace('https://myhrfh.com');
+    (() => {
+      const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      if (standalone) {
+        try {
+          window.localStorage.setItem('myhrfh-install-receipt-v1', 'installed');
+        } catch {
+          // Storage may be restricted; launch should still continue.
+        }
+      }
+      window.location.replace('https://myhrfh.com');
+    })();
   </script>
   <meta http-equiv="refresh" content="0;url=https://myhrfh.com">
   <style>
