@@ -21,6 +21,14 @@ The exact launcher PNG binaries from the last accepted Android install/duplicate
 
 If Chromium exposes its native prompt, the custom Install button invokes it. If it does not, Android shows browser-menu **Install app** guidance and desktop Chrome/Edge show the browser's **Install app** / install-icon guidance. macOS Safari uses **File → Add to Dock**.
 
+### Desktop uninstall recovery
+
+The installer stores a same-origin receipt after a successful install so it can conservatively recognize a previously installed app when browser installed-state APIs are unavailable. That receipt outlives a browser uninstall, so it cannot be treated as permanent authority.
+
+On Chromium Desktop, a fresh `beforeinstallprompt` is browser-owned evidence that the current PWA is installable again. When that event arrives, the controller now clears any stale local install receipt, resets the prior installed flag, and presents **Install HRFH web app**. This allows an uninstall followed by a return to staging to recover automatically instead of remaining stuck on **HRFH web app was previously installed**.
+
+Android intentionally retains its stronger duplicate-install guard: a `beforeinstallprompt` event does not by itself erase positive Android installed evidence. The existing Android related-app probe remains responsible for distinguishing installed versus removed state where supported.
+
 The manifest declares the PWA as its own related web app so supported Android Chrome versions can use `navigator.getInstalledRelatedApps()` as direct installed-PWA evidence. A positive related-app result, standalone launch, accepted install, or `appinstalled` records installed state. A successful empty Android related-app result means not installed and clears stale receipt state. Unsupported/error states remain unknown and may conservatively use the same-origin install receipt.
 
 When Android installation is confirmed, the installed state remains intentionally simple: **Open HRFH web app** and **Reinstall**. There is no Restore or Uninstall control. A website cannot inspect or verify whether the Android Home Screen/launcher icon itself remains present after installation.
@@ -48,11 +56,11 @@ node --check service-worker.js
 node --test tests/*.mjs
 ```
 
-The test suite includes a headless-Chromium installability smoke test that serves the exact checked-out head, waits for the service worker, reads the parsed manifest, and requires `Page.getInstallabilityErrors` to return no errors.
+The test suite includes a headless-Chromium installability smoke test that serves the exact checked-out head, waits for the service worker, reads the parsed manifest, and requires `Page.getInstallabilityErrors` to return no errors. It also includes a Desktop lifecycle regression that seeds stale installed receipt state after controller initialization and verifies a fresh installability signal clears that receipt and restores the Install action.
 
-Current cache identity: `myhrfh-installer-v11`. Controller revision: `pre-marketing-install-behavior-v1`. Android recovery revision: `android-pwa-recovery-v2`. Android installed UI revision: `android-installed-ui-v1`. iOS guidance revision: `ios-final-guidance-v2`.
+Current cache identity: `myhrfh-installer-v12`. Controller revision: `pre-marketing-install-behavior-v1`. Android recovery revision: `android-pwa-recovery-v2`. Android installed UI revision: `android-installed-ui-v1`. iOS guidance revision: `ios-final-guidance-v2`.
 
-Cache v11 is deliberate: clients may have cached the rejected launcher binaries and manifest under v10. The v11 activation evicts obsolete cache state and stages the accepted launcher assets.
+Cache v12 is deliberate: v11 may contain the controller that left Desktop on the stale **previously installed** state after browser uninstall. The v12 activation evicts obsolete cache state and stages the Desktop uninstall-recognition fix while retaining the accepted launcher assets and iOS runtime.
 
 Staging validation deliberately does **not** create or upload the Marketing ZIP. The intended Marketing route remains `https://hrfh.hrforhealth.com/web-install/`; packaging is a separate post-device-acceptance step after physical Android/Desktop staging validation.
 
