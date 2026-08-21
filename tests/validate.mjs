@@ -24,13 +24,15 @@ test('manifest defines a same-origin standalone myHRFH app with a dedicated laun
   assert.ok((manifest.related_applications ?? []).some((app) => app.platform === 'webapp'));
 });
 
-test('manifest uses only local standard HRFH PNG artwork and no maskable tile', async () => {
+test('manifest exposes local HRFH PNG artwork for Chromium any and maskable installability', async () => {
   const manifest = await readManifest();
   const icons = manifest.icons ?? [];
-  assert.equal(icons.length, 2);
+  assert.equal(icons.length, 4);
   assert.ok(icons.every((icon) => icon.src.startsWith('./icons/') && icon.type === 'image/png'));
-  assert.ok(icons.every((icon) => icon.purpose === 'any'));
-  assert.ok(!icons.some((icon) => /maskable/i.test(icon.purpose ?? '') || /maskable/i.test(icon.src)));
+  for (const size of ['192x192', '512x512']) {
+    assert.ok(icons.some((icon) => icon.sizes === size && icon.purpose === 'any'));
+    assert.ok(icons.some((icon) => icon.sizes === size && icon.purpose === 'maskable'));
+  }
 });
 
 test('standard install assets are transparent branded PNGs', async () => {
