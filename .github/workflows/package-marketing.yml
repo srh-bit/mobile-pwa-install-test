@@ -29,9 +29,18 @@ jobs:
           expected='85cf632d7c2b3ecfb0b984e1f3c9097c1003db8d'
           git merge-base --is-ancestor "$expected" HEAD
           changed="$(git diff --name-only "$expected"..HEAD)"
-          test "$changed" = '.github/workflows/package-marketing.yml'
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+            case "$path" in
+              .github/workflows/package-marketing.yml|MARKETING-README.md) ;;
+              *)
+                echo "Unexpected change outside release packaging/documentation boundary: $path" >&2
+                exit 1
+                ;;
+            esac
+          done <<< "$changed"
           echo "Accepted source SHA: $expected"
-          echo 'Release branch changes only packaging workflow.'
+          echo 'Release branch changes only packaging workflow and Marketing README.'
 
       - name: Use Node.js
         uses: actions/setup-node@v5
@@ -78,6 +87,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
+          test -s MARKETING-README.md
 
           expected_files='web-install/index.html
           web-install/launch.html
@@ -145,5 +156,6 @@ jobs:
           path: |
             hrfh-web-install-marketing.zip
             SHA256SUMS.txt
+            MARKETING-README.md
           if-no-files-found: error
           retention-days: 14
