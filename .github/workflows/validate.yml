@@ -30,29 +30,3 @@ jobs:
           node --check service-worker.js
       - name: Run repository validation
         run: node --test tests/*.mjs
-      - name: Build marketing handoff artifact
-        run: |
-          rm -rf dist
-          mkdir -p dist/web-install/icons
-          cp index.html launch.html styles.css ios-modal.css ios-guidance-v2.css ios-guidance-v3.css install.js ios-guidance-v2.js manifest.webmanifest service-worker.js dist/web-install/
-          cp icons/icon-192.png icons/icon-512.png dist/web-install/icons/
-          node --input-type=module <<'NODE'
-          import { readFile, writeFile } from 'node:fs/promises';
-          const path = 'dist/web-install/manifest.webmanifest';
-          const manifest = JSON.parse(await readFile(path, 'utf8'));
-          manifest.related_applications = [{
-            platform: 'webapp',
-            url: 'https://hrfh.hrforhealth.com/web-install/manifest.webmanifest',
-            id: 'https://hrfh.hrforhealth.com/web-install/'
-          }];
-          await writeFile(path, `${JSON.stringify(manifest, null, 2)}\n`);
-          NODE
-          cd dist
-          zip -r ../hrfh-web-install-marketing.zip web-install
-      - name: Upload marketing handoff artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: hrfh-web-install-marketing
-          path: hrfh-web-install-marketing.zip
-          if-no-files-found: error
-          retention-days: 7
