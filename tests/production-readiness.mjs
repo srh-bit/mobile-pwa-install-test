@@ -39,13 +39,18 @@ test('installation probing uses definitive empty result only on supported Androi
   assert.match(stateFunction, /return ['"]unknown['"]/);
 });
 
-test('desktop install recovery is driven by native install capability, not restore shortcuts', async () => {
+test('Android and desktop install recovery is driven by live install capability, not restore shortcuts or stale receipts', async () => {
   const js = await read('install.js');
   const html = await read('index.html');
   const handler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
+  const androidFallback = js.match(/function renderAndroidFallback\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
+  const desktopFallback = js.match(/function renderDesktopFallback\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
   assert.match(handler, /deferredInstallPrompt\s*=\s*event/);
+  assert.match(handler, /clearInstallReceipt\(\)/);
   assert.match(handler, /renderInstallReady\(\)/);
-  assert.match(handler, /isAndroid\(\)\s*&&\s*readInstallReceipt\(\)/);
+  assert.doesNotMatch(handler, /readInstallReceipt\(\)/);
+  assert.match(androidFallback, /installButton\.hidden\s*=\s*false/i);
+  assert.match(desktopFallback, /installButton\.hidden\s*=\s*false/i);
   assert.doesNotMatch(html, /restore-shortcut-button|management-dialog/i);
   assert.doesNotMatch(js, /chrome:\/\/apps|edge:\/\/apps|ShortcutManager|requestPinShortcut|launcher database/i);
 });
