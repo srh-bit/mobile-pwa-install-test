@@ -306,10 +306,17 @@ async function renderInitialState() {
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
   deferredInstallPrompt = event;
-  if (installedStateDetected || readInstallReceipt()) {
+
+  if (isAndroid() && (installedStateDetected || readInstallReceipt())) {
     installButton.hidden = true;
     return;
   }
+
+  if (!isAndroid()) {
+    clearInstallReceipt();
+    installedStateDetected = false;
+  }
+
   applyEnvironmentCopy();
   renderInstallReady();
 });
