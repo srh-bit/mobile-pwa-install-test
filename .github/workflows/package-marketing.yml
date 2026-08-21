@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - release/marketing-85cf632
+  pull_request:
+    branches:
+      - feature/pwa-install-prototype
 
 permissions:
   contents: read
@@ -16,16 +19,19 @@ jobs:
       - name: Checkout release branch
         uses: actions/checkout@v5
         with:
-          fetch-depth: 2
+          ref: release/marketing-85cf632
+          fetch-depth: 0
 
-      - name: Verify accepted source parent
+      - name: Verify accepted source boundary
         shell: bash
         run: |
           set -euo pipefail
           expected='85cf632d7c2b3ecfb0b984e1f3c9097c1003db8d'
-          actual="$(git rev-parse HEAD^)"
-          test "$actual" = "$expected"
-          echo "Accepted source SHA: $actual"
+          git merge-base --is-ancestor "$expected" HEAD
+          changed="$(git diff --name-only "$expected"..HEAD)"
+          test "$changed" = '.github/workflows/package-marketing.yml'
+          echo "Accepted source SHA: $expected"
+          echo 'Release branch changes only packaging workflow.'
 
       - name: Use Node.js
         uses: actions/setup-node@v5
