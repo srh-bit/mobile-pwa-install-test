@@ -198,3 +198,45 @@ test('Chromium reports the staging shell as technically installable', { timeout:
     `Chromium installability errors: ${JSON.stringify(errors)}\nChrome stderr: ${launched.chromeStderr()}`
   );
 });
+
+test('desktop uninstall clears a stale install receipt and returns to Install', { timeout: 60000 }, async (t) => {
+  const { server, origin } = await startStaticServer();
+  t.after(() => new Promise((resolvePromise) => server.close(resolvePromise)));
+
+  const launched = await launchChromeWithDevTools(origin);
+  t.after(() => stopChrome(launched.chrome));
+
+  const cdp = await connectCdp(launched.webSocketUrl);
+  t.after(() => cdp.close());
+
+  await cdp.send('Page.enable');
+  await cdp.send('Runtime.enable');
+
+  const relatedApps = await cdp.send('Runtime.evaluate', {
+    expression: `(async () => typeof navigator.getInstalledRelatedApps === 'function' ? await navigator.getInstalledRelatedApps() : null)()`,
+    awaitPromise: true,
+    returnByValue: true
+  });
+  assert.deepEqual(relatedApps.result?.value, [], 'Fresh Chromium profile should report no installed self-related PWA');
+
+  await cdp.send('Runtime.evaluate', {
+    expression: `localStorage.setItem('myhrfh-install-receipt-v1', 'installed')`
+  });
+  await cdp.send('Page.reload', { ignoreCache: true });
+  await sleep(2500);
+
+  const rendered = await cdp.send('Runtime.evaluate', {
+    expression: `({
+      receipt: localStorage.getItem('myhrfh-install-receipt-v1'),
+      title: document.getElementById('page-title')?.textContent,
+      installHidden: document.getElementById('install-button')?.hidden,
+      installText: document.getElementById('install-button')?.textContent
+    })`,
+    returnByValue: true
+  });
+
+  assert.equal(rendered.result?.value?.receipt, null, 'Successful desktop not-installed evidence must clear the stale receipt');
+  assert.equal(rendered.result?.value?.title, 'Install the HRFH web app');
+  assert.equal(rendered.result?.value?.installHidden, false);
+  assert.equal(rendered.result?.value?.installText, 'Install HRFH web app');
+});
