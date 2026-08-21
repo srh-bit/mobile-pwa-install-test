@@ -52,9 +52,9 @@ test('iPhone guidance stays direct while covering Share and circled More without
   assert.doesNotMatch(js, /navigator\.share\s*\(/i);
 });
 
-test('v10 staging cache preserves final iOS guidance assets unchanged', async () => {
+test('v11 staging cache preserves final iOS guidance assets unchanged', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /myhrfh-installer-v10/i);
+  assert.match(worker, /myhrfh-installer-v11/i);
   assert.match(worker, /ios-final-guidance-v2/i);
   assert.match(worker, /hrfh-transparent-icon-v1/i);
   assert.doesNotMatch(worker, /android-native-management/i);
