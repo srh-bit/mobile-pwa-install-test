@@ -5,14 +5,12 @@ import { readFile } from 'node:fs/promises';
 const fileUrl = (path) => new URL(`../${path}`, import.meta.url);
 const read = (path) => readFile(fileUrl(path), 'utf8');
 
-test('installed state keeps Android recovery to Open and Reinstall with no uninstall control', async () => {
+test('installed state keeps Android recovery to Open and Reinstall with no uninstall or restore control', async () => {
   const html = await read('index.html');
   const js = await read('install.js');
-  const availability = js.match(/function getInstalledManagementAvailability\([^)]*\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
-  assert.doesNotMatch(html, /id=["']uninstall-button["']/i);
-  assert.match(availability, /isAndroid\(\)[^\n]*restore:\s*false/i);
+  assert.doesNotMatch(html, /uninstall-button|restore-shortcut-button|management-dialog/i);
   assert.match(js, /reinstallButton\.hidden\s*=\s*!\(confirmed\s*&&\s*isAndroid\(\)\)/i);
-  assert.doesNotMatch(js, /requestAndroidUninstall|showUninstallHelp|HRFHAndroidNative/);
+  assert.doesNotMatch(js, /requestAndroidUninstall|showUninstallHelp|HRFHAndroidNative|getInstalledManagementAvailability|showShortcutHelp/i);
 });
 
 test('iOS guidance uses a branded modal and direct iOS-style action symbols', async () => {
@@ -41,11 +39,15 @@ test('installation probing uses definitive empty result only on supported Androi
   assert.match(stateFunction, /return ['"]unknown['"]/);
 });
 
-test('desktop shortcut recovery remains user-controlled', async () => {
+test('desktop install recovery is driven by native install capability, not restore shortcuts', async () => {
   const js = await read('install.js');
-  assert.match(js, /chrome:\/\/apps/i);
-  assert.match(js, /edge:\/\/apps/i);
-  assert.doesNotMatch(js, /ShortcutManager|requestPinShortcut|launcher database/i);
+  const html = await read('index.html');
+  const handler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
+  assert.match(handler, /deferredInstallPrompt\s*=\s*event/);
+  assert.match(handler, /renderInstallReady\(\)/);
+  assert.match(handler, /isAndroid\(\)\s*&&\s*readInstallReceipt\(\)/);
+  assert.doesNotMatch(html, /restore-shortcut-button|management-dialog/i);
+  assert.doesNotMatch(js, /chrome:\/\/apps|edge:\/\/apps|ShortcutManager|requestPinShortcut|launcher database/i);
 });
 
 test('public installer includes privacy and indexing safeguards without iOS calibration storage', async () => {
