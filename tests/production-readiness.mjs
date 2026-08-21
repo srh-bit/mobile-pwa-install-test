@@ -39,18 +39,21 @@ test('installation probing uses definitive empty result only on supported Androi
   assert.match(stateFunction, /return ['"]unknown['"]/);
 });
 
-test('Android and desktop install recovery restores the pre-Marketing native-prompt contract without Restore shortcuts', async () => {
+test('Android duplicate prevention and desktop uninstall recovery both use browser-owned installability signals', async () => {
   const js = await read('install.js');
   const html = await read('index.html');
   const handler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
+  const androidGuard = handler.match(/if\s*\(isAndroid\(\)\s*&&\s*\(installedStateDetected\s*\|\|\s*readInstallReceipt\(\)\)\)\s*\{([\s\S]*?)\n\s*\}/i)?.[1] ?? '';
   const androidFallback = js.match(/function renderAndroidFallback\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
   const desktopFallback = js.match(/function renderDesktopFallback\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
   assert.match(js, /INSTALL_PROMPT_WAIT_MS\s*=\s*1200/);
   assert.match(js, /async function waitForInstallPrompt\(\)/);
   assert.match(handler, /deferredInstallPrompt\s*=\s*event/);
-  assert.match(handler, /installedStateDetected\s*\|\|\s*readInstallReceipt\(\)/);
+  assert.match(androidGuard, /installButton\.hidden\s*=\s*true/i);
+  assert.match(androidGuard, /return/i);
+  assert.doesNotMatch(androidGuard, /clearInstallReceipt\(\)/i);
+  assert.match(handler, /if\s*\(!isAndroid\(\)\)[\s\S]*clearInstallReceipt\(\)[\s\S]*installedStateDetected\s*=\s*false/i);
   assert.match(handler, /renderInstallReady\(\)/);
-  assert.doesNotMatch(handler, /clearInstallReceipt\(\)/);
   assert.match(androidFallback, /installButton\.hidden\s*=\s*true/i);
   assert.match(desktopFallback, /installButton\.hidden\s*=\s*true/i);
   assert.doesNotMatch(html, /restore-shortcut-button|management-dialog/i);
