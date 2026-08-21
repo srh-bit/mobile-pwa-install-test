@@ -54,7 +54,7 @@ test('pre-Marketing receipt remains conservative fallback when the browser canno
 
 test('PWA-only release rotates cache and removes native bridge shell asset', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v10['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v11['"]/);
   assert.match(worker, /BUILD_REVISION\s*=\s*['"]pre-marketing-install-behavior-v1['"]/);
   assert.match(worker, /ANDROID_INSTALL_REVISION\s*=\s*['"]android-pwa-recovery-v2['"]/);
   assert.match(worker, /HRFH_ICON_REVISION\s*=\s*['"]hrfh-transparent-icon-v1['"]/);
