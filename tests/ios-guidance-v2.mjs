@@ -53,11 +53,11 @@ test('iOS final guidance rerenders safely on orientation and viewport changes', 
   assert.match(js, /requestAnimationFrame/i);
 });
 
-test('v11 staging cache includes final iOS guidance assets unchanged', async () => {
+test('v12 staging cache includes final iOS guidance assets unchanged', async () => {
   const worker = await read('service-worker.js');
   assert.match(worker, /ios-guidance-v2\.js/i);
   assert.match(worker, /ios-guidance-v3\.css/i);
   assert.match(worker, /ios-final-guidance-v2/i);
-  assert.match(worker, /myhrfh-installer-v11/i);
+  assert.match(worker, /myhrfh-installer-v12/i);
   assert.match(worker, /hrfh-transparent-icon-v1/i);
 });
