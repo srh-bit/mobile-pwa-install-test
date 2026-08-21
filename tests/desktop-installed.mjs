@@ -42,9 +42,9 @@ test('empty related-app result remains definitive only on Android when the brows
   assert.match(stateFunction, /return ['"]unknown['"]/i);
 });
 
-test('service worker refreshes the app shell for restored pre-Marketing behavior', async () => {
+test('service worker rotates to v12 so clients receive the desktop uninstall recovery handler', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v11['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v12['"]/);
   assert.match(worker, /const BUILD_REVISION = ['"]pre-marketing-install-behavior-v1['"]/);
   assert.match(worker, /const HRFH_ICON_REVISION = ['"]hrfh-transparent-icon-v1['"]/);
 });
