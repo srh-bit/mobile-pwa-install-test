@@ -6,7 +6,6 @@ import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve } from 'node:path';
 
 const REPO_ROOT = resolve(new URL('..', import.meta.url).pathname);
-const CDP_PORT = 9223;
 
 const MIME = new Map([
   ['.html', 'text/html; charset=utf-8'],
@@ -59,22 +58,33 @@ async function startStaticServer() {
   return { server, origin: `http://127.0.0.1:${address.port}` };
 }
 
-async function waitForTarget(expectedUrl) {
-  const endpoint = `http://127.0.0.1:${CDP_PORT}/json/list`;
-  for (let attempt = 0; attempt < 80; attempt += 1) {
+async function waitForDevToolsPort(getStderr) {
+  const pattern = /DevTools listening on ws:\/\/127\.0\.0\.1:(\d+)\//;
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const stderr = getStderr();
+    const match = stderr.match(pattern);
+    if (match) return Number(match[1]);
+    await sleep(100);
+  }
+  throw new Error(`Timed out waiting for Chrome DevTools endpoint. Chrome stderr: ${getStderr()}`);
+}
+
+async function waitForTarget(port, expectedOrigin, getStderr) {
+  const endpoint = `http://127.0.0.1:${port}/json/list`;
+  for (let attempt = 0; attempt < 200; attempt += 1) {
     try {
       const response = await fetch(endpoint);
       if (response.ok) {
         const targets = await response.json();
-        const page = targets.find((target) => target.type === 'page' && target.url.startsWith(expectedUrl));
+        const page = targets.find((target) => target.type === 'page' && target.url.startsWith(expectedOrigin));
         if (page?.webSocketDebuggerUrl) return page.webSocketDebuggerUrl;
       }
     } catch {
-      // Chrome may still be starting.
+      // Chrome may still be creating the target.
     }
     await sleep(100);
   }
-  throw new Error(`Timed out waiting for Chrome DevTools target at ${expectedUrl}`);
+  throw new Error(`Timed out waiting for Chrome DevTools target at ${expectedOrigin}. Chrome stderr: ${getStderr()}`);
 }
 
 async function connectCdp(webSocketUrl) {
@@ -112,7 +122,7 @@ async function connectCdp(webSocketUrl) {
   };
 }
 
-test('Chromium reports the staging shell as technically installable', { timeout: 30000 }, async (t) => {
+test('Chromium reports the staging shell as technically installable', { timeout: 45000 }, async (t) => {
   const { server, origin } = await startStaticServer();
   t.after(() => new Promise((resolvePromise) => server.close(resolvePromise)));
 
@@ -121,8 +131,8 @@ test('Chromium reports the staging shell as technically installable', { timeout:
     '--no-sandbox',
     '--disable-gpu',
     '--disable-dev-shm-usage',
-    `--remote-debugging-port=${CDP_PORT}`,
-    `--user-data-dir=/tmp/hrfh-pwa-installability-${process.pid}`,
+    '--remote-debugging-port=0',
+    `--user-data-dir=/tmp/hrfh-pwa-installability-${process.pid}-${Date.now()}`,
     `${origin}/`
   ], { stdio: ['ignore', 'ignore', 'pipe'] });
   let chromeStderr = '';
@@ -131,7 +141,8 @@ test('Chromium reports the staging shell as technically installable', { timeout:
     if (!chrome.killed) chrome.kill('SIGKILL');
   });
 
-  const webSocketUrl = await waitForTarget(`${origin}/`);
+  const cdpPort = await waitForDevToolsPort(() => chromeStderr);
+  const webSocketUrl = await waitForTarget(cdpPort, origin, () => chromeStderr);
   const cdp = await connectCdp(webSocketUrl);
   t.after(() => cdp.close());
 
