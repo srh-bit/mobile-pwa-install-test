@@ -25,12 +25,12 @@ test('iOS installer keeps the automatic branded modal while final guidance owns 
   assert.match(css, /position:\s*fixed/i);
 });
 
-test('v10 staging cache refreshes the shell while preserving final iOS guidance', async () => {
+test('v11 staging cache refreshes the shell while preserving final iOS guidance', async () => {
   const worker = await read('service-worker.js');
   assert.match(worker, /const IOS_MODAL_REVISION = ['"]ios-install-modal-v1['"]/);
   assert.match(worker, /const IOS_BROWSER_REVISION = ['"]ios-current-browser-v1['"]/);
   assert.match(worker, /const IOS_FINAL_GUIDANCE_REVISION = ['"]ios-final-guidance-v2['"]/);
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v10['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v11['"]/);
   assert.match(worker, /const HRFH_ICON_REVISION = ['"]hrfh-transparent-icon-v1['"]/);
   assert.match(worker, /\.\/ios-modal\.css/);
   assert.match(worker, /\.\/ios-guidance-v3\.css/);
