@@ -72,7 +72,7 @@ test('Android installed state retains intentional reinstall recovery', async () 
 
 test('PWA-only Android UI cleanup refreshes the restored staging shell', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v10['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v11['"]/);
   assert.match(worker, /BUILD_REVISION\s*=\s*['"]pre-marketing-install-behavior-v1['"]/);
   assert.match(worker, /ANDROID_INSTALL_REVISION\s*=\s*['"]android-pwa-recovery-v2['"]/);
   assert.match(worker, /ANDROID_UI_REVISION\s*=\s*['"]android-installed-ui-v1['"]/);
