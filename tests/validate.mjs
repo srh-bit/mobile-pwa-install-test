@@ -99,10 +99,12 @@ test('iPhone and iPad use direct final guidance without toolbar questions', asyn
   assert.doesNotMatch(guidance, /CALIBRATION_SESSION_KEY|sessionStorage|buildCalibration|needsCalibration/i);
 });
 
-test('desktop fallbacks distinguish Mac Safari and general desktop browsers', async () => {
+test('desktop fallbacks distinguish Mac Safari and general desktop browsers while keeping Install visible', async () => {
   const js = await read('install.js');
-  assert.match(js, /Add to Dock/i);
-  assert.match(js, /Install the HRFH web app from your browser menu\./i);
+  const fallback = js.match(/function renderDesktopFallback\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
+  assert.match(fallback, /installButton\.hidden\s*=\s*false/i);
+  assert.match(fallback, /Add to Dock/i);
+  assert.match(fallback, /Install app|install icon/i);
 });
 
 test('legacy installed entry records the install receipt before forwarding to myHRFH', async () => {
