@@ -14,23 +14,22 @@ test('Android successful related-app probe can distinguish installed from not in
   assert.match(probe, /catch[\s\S]*return ['"]unknown['"]/);
 });
 
-test('Android refresh uses receipt only when the browser probe is unknown', async () => {
+test('pre-Marketing refresh uses the install receipt when the browser probe is unknown', async () => {
   const js = await read('install.js');
   const initialState = js.match(/async function renderInitialState\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
   assert.match(initialState, /installationState === ['"]installed['"]/);
-  assert.match(initialState, /installationState === ['"]unknown['"][\s\S]*isAndroid\(\)[\s\S]*readInstallReceipt\(\)/);
+  assert.match(initialState, /installationState === ['"]unknown['"]\s*&&\s*readInstallReceipt\(\)/);
   assert.match(initialState, /installationState === ['"]not-installed['"][\s\S]*clearInstallReceipt\(\)/);
 });
 
-test('beforeinstallprompt supersedes stale Android fallback evidence', async () => {
+test('pre-Marketing beforeinstallprompt preserves recorded installed evidence', async () => {
   const js = await read('install.js');
   const handler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
   assert.match(handler, /deferredInstallPrompt\s*=\s*event/);
-  assert.match(handler, /installedStateDetected\s*=\s*false/);
-  assert.match(handler, /clearInstallReceipt\(\)/);
+  assert.match(handler, /installedStateDetected\s*\|\|\s*readInstallReceipt\(\)/);
+  assert.match(handler, /installButton\.hidden\s*=\s*true/);
   assert.match(handler, /renderInstallReady\(\)/);
-  assert.doesNotMatch(handler, /readInstallReceipt\(\)/);
-  assert.doesNotMatch(handler, /if\s*\([^)]*installedStateDetected/i);
+  assert.doesNotMatch(handler, /clearInstallReceipt\(\)/);
 });
 
 test('accepted Android install writes the receipt immediately', async () => {
@@ -54,11 +53,12 @@ test('Android installed confirmation is concise', async () => {
   assert.doesNotMatch(js, /cannot inspect|launcher icon|restore quick access/i);
 });
 
-test('Android fallback remains browser install rather than an unverifiable bookmark', async () => {
+test('pre-Marketing Android fallback uses browser Install app guidance without a dead custom button', async () => {
   const js = await read('install.js');
   const fallback = js.match(/function renderAndroidFallback\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
   assert.match(fallback, /Install app/i);
-  assert.match(fallback, /installButton\.hidden\s*=\s*false/i);
+  assert.match(fallback, /installButton\.hidden\s*=\s*true/i);
+  assert.doesNotMatch(fallback, /installButton\.textContent/i);
   assert.doesNotMatch(fallback, /Add to Home screen/i);
 });
 
@@ -70,9 +70,10 @@ test('Android installed state retains intentional reinstall recovery', async () 
   assert.match(js, /clearInstallReceipt\(\)/);
 });
 
-test('PWA-only Android UI cleanup refreshes the cached shell', async () => {
+test('PWA-only Android UI cleanup refreshes the restored staging shell', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v9['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v10['"]/);
+  assert.match(worker, /BUILD_REVISION\s*=\s*['"]pre-marketing-install-behavior-v1['"]/);
   assert.match(worker, /ANDROID_INSTALL_REVISION\s*=\s*['"]android-pwa-recovery-v2['"]/);
   assert.match(worker, /ANDROID_UI_REVISION\s*=\s*['"]android-installed-ui-v1['"]/);
   assert.match(worker, /HRFH_ICON_REVISION\s*=\s*['"]hrfh-transparent-icon-v1['"]/);
