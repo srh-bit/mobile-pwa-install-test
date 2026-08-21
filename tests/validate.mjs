@@ -127,9 +127,9 @@ test('service worker never proxies or caches myHRFH and enforces same origin', a
   assert.match(worker, /url\.origin\s*!==\s*self\.location\.origin/);
 });
 
-test('service worker uses the v10 pre-Marketing PWA-only recovery identity', async () => {
+test('service worker uses the v11 pre-Marketing PWA-only recovery identity', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v10['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v11['"]/);
   assert.match(worker, /const BUILD_REVISION = ['"]pre-marketing-install-behavior-v1['"]/);
   assert.match(worker, /const ANDROID_INSTALL_REVISION = ['"]android-pwa-recovery-v2['"]/);
   assert.match(worker, /const HRFH_ICON_REVISION = ['"]hrfh-transparent-icon-v1['"]/);
