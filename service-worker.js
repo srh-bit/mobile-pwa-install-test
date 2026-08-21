@@ -1,5 +1,5 @@
-const CACHE_NAME = 'myhrfh-installer-v9';
-const BUILD_REVISION = 'android-desktop-install-affordance-v1';
+const CACHE_NAME = 'myhrfh-installer-v10';
+const BUILD_REVISION = 'pre-marketing-install-behavior-v1';
 const DESKTOP_INSTALL_FIX_REVISION = 'desktop-install-recovery-v1';
 const ANDROID_INSTALL_REVISION = 'android-pwa-recovery-v2';
 const ANDROID_UI_REVISION = 'android-installed-ui-v1';
