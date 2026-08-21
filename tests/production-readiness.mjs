@@ -39,18 +39,20 @@ test('installation probing uses definitive empty result only on supported Androi
   assert.match(stateFunction, /return ['"]unknown['"]/);
 });
 
-test('Android and desktop install recovery is driven by live install capability, not restore shortcuts or stale receipts', async () => {
+test('Android and desktop install recovery restores the pre-Marketing native-prompt contract without Restore shortcuts', async () => {
   const js = await read('install.js');
   const html = await read('index.html');
   const handler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
   const androidFallback = js.match(/function renderAndroidFallback\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
   const desktopFallback = js.match(/function renderDesktopFallback\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
+  assert.match(js, /INSTALL_PROMPT_WAIT_MS\s*=\s*1200/);
+  assert.match(js, /async function waitForInstallPrompt\(\)/);
   assert.match(handler, /deferredInstallPrompt\s*=\s*event/);
-  assert.match(handler, /clearInstallReceipt\(\)/);
+  assert.match(handler, /installedStateDetected\s*\|\|\s*readInstallReceipt\(\)/);
   assert.match(handler, /renderInstallReady\(\)/);
-  assert.doesNotMatch(handler, /readInstallReceipt\(\)/);
-  assert.match(androidFallback, /installButton\.hidden\s*=\s*false/i);
-  assert.match(desktopFallback, /installButton\.hidden\s*=\s*false/i);
+  assert.doesNotMatch(handler, /clearInstallReceipt\(\)/);
+  assert.match(androidFallback, /installButton\.hidden\s*=\s*true/i);
+  assert.match(desktopFallback, /installButton\.hidden\s*=\s*true/i);
   assert.doesNotMatch(html, /restore-shortcut-button|management-dialog/i);
   assert.doesNotMatch(js, /chrome:\/\/apps|edge:\/\/apps|ShortcutManager|requestPinShortcut|launcher database/i);
 });
@@ -63,10 +65,10 @@ test('public installer includes privacy and indexing safeguards without iOS cali
   assert.doesNotMatch(guidanceJs, /sessionStorage|localStorage/i);
 });
 
-test('service worker uses production navigation freshness and the non-iOS install-affordance release identity', async () => {
+test('service worker uses production navigation freshness and the restored pre-Marketing release identity', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v9['"]/);
-  assert.match(worker, /android-desktop-install-affordance-v1/i);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v10['"]/);
+  assert.match(worker, /pre-marketing-install-behavior-v1/i);
   assert.match(worker, /hrfh-transparent-icon-v1/i);
   assert.match(worker, /android-pwa-recovery-v2/i);
   assert.match(worker, /ios-final-guidance-v2/i);
@@ -82,6 +84,8 @@ test('production readiness and security guidance document browser-only boundarie
   assert.match(readiness, /myhrfh\.com/i);
   assert.match(readiness, /getInstalledRelatedApps/i);
   assert.match(readiness, /beforeinstallprompt/i);
+  assert.match(readiness, /3251b8addb47cd9169afe365b8689b3aab69c561/i);
+  assert.match(readiness, /09191a2fb6540cf9adc8f449e0bd17888675e82d/i);
   assert.match(readiness, /cannot[^\n]*(?:inspect|detect|verify)[^\n]*(?:Home Screen|launcher)/i);
   assert.doesNotMatch(readiness, /Android[^\n]*Restore Home Screen shortcut/i);
   assert.doesNotMatch(readiness, /Managed Android TWA|ShortcutManager|ACTION_DELETE/i);
