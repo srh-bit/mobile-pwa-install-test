@@ -1,0 +1,143 @@
+name: Package accepted Marketing handoff
+
+on:
+  push:
+    branches:
+      - release/marketing-85cf632
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Verify accepted source parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected='85cf632d7c2b3ecfb0b984e1f3c9097c1003db8d'
+          actual="$(git rev-parse HEAD^)"
+          test "$actual" = "$expected"
+          echo "Accepted source SHA: $actual"
+
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Re-run accepted validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check install.js
+          node --check ios-guidance-v2.js
+          node --check service-worker.js
+          node --test tests/*.mjs
+
+      - name: Build Marketing handoff from accepted assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf dist hrfh-web-install-marketing.zip SHA256SUMS.txt
+          mkdir -p dist/web-install/icons
+          cp index.html launch.html styles.css ios-modal.css ios-guidance-v2.css ios-guidance-v3.css install.js ios-guidance-v2.js manifest.webmanifest service-worker.js dist/web-install/
+          cp icons/icon-192.png icons/icon-512.png dist/web-install/icons/
+
+          node --input-type=module <<'NODE'
+          import { readFile, writeFile } from 'node:fs/promises';
+          const path = 'dist/web-install/manifest.webmanifest';
+          const manifest = JSON.parse(await readFile(path, 'utf8'));
+          manifest.related_applications = [{
+            platform: 'webapp',
+            url: 'https://hrfh.hrforhealth.com/web-install/manifest.webmanifest',
+            id: 'https://hrfh.hrforhealth.com/web-install/'
+          }];
+          await writeFile(path, `${JSON.stringify(manifest, null, 2)}\n`);
+          NODE
+
+          cd dist
+          zip -r ../hrfh-web-install-marketing.zip web-install
+          cd ..
+          sha256sum hrfh-web-install-marketing.zip | tee SHA256SUMS.txt
+
+      - name: Inspect Marketing artifact contract
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          expected_files='web-install/index.html
+          web-install/launch.html
+          web-install/styles.css
+          web-install/ios-modal.css
+          web-install/ios-guidance-v2.css
+          web-install/ios-guidance-v3.css
+          web-install/install.js
+          web-install/ios-guidance-v2.js
+          web-install/manifest.webmanifest
+          web-install/service-worker.js
+          web-install/icons/icon-192.png
+          web-install/icons/icon-512.png'
+
+          actual_files="$(unzip -Z1 hrfh-web-install-marketing.zip | grep -v '/$' | sort)"
+          wanted_files="$(printf '%s\n' "$expected_files" | sed 's/^ *//' | sort)"
+          diff -u <(printf '%s\n' "$wanted_files") <(printf '%s\n' "$actual_files")
+
+          rm -rf inspected
+          mkdir inspected
+          unzip -q hrfh-web-install-marketing.zip -d inspected
+
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          const manifest = JSON.parse(await readFile('inspected/web-install/manifest.webmanifest', 'utf8'));
+          const expected = [{
+            platform: 'webapp',
+            url: 'https://hrfh.hrforhealth.com/web-install/manifest.webmanifest',
+            id: 'https://hrfh.hrforhealth.com/web-install/'
+          }];
+          if (JSON.stringify(manifest.related_applications) !== JSON.stringify(expected)) {
+            throw new Error('Marketing related_applications identity drifted');
+          }
+          if (manifest.id !== './' || manifest.scope !== './' || manifest.start_url !== './launch.html') {
+            throw new Error('Relative production scope/start identity drifted');
+          }
+          if (!Array.isArray(manifest.icons) || manifest.icons.length !== 2 || manifest.icons.some(icon => icon.purpose !== 'any')) {
+            throw new Error('Accepted two-icon manifest contract drifted');
+          }
+          NODE
+
+          test "$(git hash-object inspected/web-install/icons/icon-192.png)" = '6caf93dd24cc651dd951c66cc3506a46c8ea34fa'
+          test "$(git hash-object inspected/web-install/icons/icon-512.png)" = '20a578449f179551894c66509ef73a020df9b978'
+          grep -Fq "const CACHE_NAME = 'myhrfh-installer-v12';" inspected/web-install/service-worker.js
+          grep -Fq 'https://hrforhealth.com/wp-content/uploads/2024/04/Logo-icon-1.png.webp' inspected/web-install/index.html
+
+          if grep -RniE 'Restore Home Screen|>Restore<|>Uninstall<' inspected/web-install; then
+            echo 'Disallowed Restore/Uninstall control found in Marketing package' >&2
+            exit 1
+          fi
+
+          cmp install.js inspected/web-install/install.js
+          cmp ios-guidance-v2.js inspected/web-install/ios-guidance-v2.js
+          cmp service-worker.js inspected/web-install/service-worker.js
+          cmp icons/icon-192.png inspected/web-install/icons/icon-192.png
+          cmp icons/icon-512.png inspected/web-install/icons/icon-512.png
+
+          echo 'Marketing artifact inspection: PASS'
+          cat SHA256SUMS.txt
+
+      - name: Upload inspected Marketing handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: hrfh-web-install-marketing-85cf632
+          path: |
+            hrfh-web-install-marketing.zip
+            SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
