@@ -85,6 +85,8 @@ test('install controller detects iOS, Android, Windows, macOS, and desktop Safar
 test('install controller remains capability-first for browser installs only', async () => {
   const js = await read('install.js');
   assert.match(js, /beforeinstallprompt/);
+  assert.match(js, /INSTALL_PROMPT_WAIT_MS\s*=\s*1200/);
+  assert.match(js, /waitForInstallPrompt\(\)/);
   assert.match(js, /renderInstallReady\(\)/);
   assert.match(js, /appinstalled/);
   assert.match(js, /getInstalledRelatedApps/);
@@ -99,12 +101,13 @@ test('iPhone and iPad use direct final guidance without toolbar questions', asyn
   assert.doesNotMatch(guidance, /CALIBRATION_SESSION_KEY|sessionStorage|buildCalibration|needsCalibration/i);
 });
 
-test('desktop fallbacks distinguish Mac Safari and general desktop browsers while keeping Install visible', async () => {
+test('pre-Marketing desktop fallbacks distinguish Mac Safari and general desktop browsers without a dead custom Install button', async () => {
   const js = await read('install.js');
   const fallback = js.match(/function renderDesktopFallback\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
-  assert.match(fallback, /installButton\.hidden\s*=\s*false/i);
+  assert.match(fallback, /installButton\.hidden\s*=\s*true/i);
   assert.match(fallback, /Add to Dock/i);
   assert.match(fallback, /Install app|install icon/i);
+  assert.doesNotMatch(fallback, /installButton\.textContent/i);
 });
 
 test('legacy installed entry records the install receipt before forwarding to myHRFH', async () => {
@@ -124,9 +127,10 @@ test('service worker never proxies or caches myHRFH and enforces same origin', a
   assert.match(worker, /url\.origin\s*!==\s*self\.location\.origin/);
 });
 
-test('service worker uses the v9 transparent-icon PWA-only recovery identity', async () => {
+test('service worker uses the v10 pre-Marketing PWA-only recovery identity', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v9['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v10['"]/);
+  assert.match(worker, /const BUILD_REVISION = ['"]pre-marketing-install-behavior-v1['"]/);
   assert.match(worker, /const ANDROID_INSTALL_REVISION = ['"]android-pwa-recovery-v2['"]/);
   assert.match(worker, /const HRFH_ICON_REVISION = ['"]hrfh-transparent-icon-v1['"]/);
   assert.match(worker, /const IOS_FINAL_GUIDANCE_REVISION = ['"]ios-final-guidance-v2['"]/);
