@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#4a0d7f">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex, nofollow">
+  <script>
+    (() => {
+      const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      if (standalone) {
+        try {
+          window.localStorage.setItem('myhrfh-install-receipt-v1', 'installed');
+        } catch {
+          // Storage may be restricted; standalone launch should still continue.
+        }
+        window.location.replace('https://myhrfh.com');
+      }
+    })();
+  </script>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="myHRFH">
+  <title>Add the HRFH web app | HR for Health</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./ios-modal.css">
+  <link rel="stylesheet" href="./ios-guidance-v2.css">
+  <link rel="stylesheet" href="./ios-guidance-v3.css">
+  <script src="./install.js" defer></script>
+  <script src="./ios-guidance-v2.js" defer></script>
+</head>
+<body>
+  <main class="page-shell">
+    <section class="install-card" aria-labelledby="page-title">
+      <header class="brand-lockup" aria-label="HR for Health">
+        <span class="brand-mark-shell" aria-hidden="true"><img class="brand-icon" src="https://hrforhealth.com/wp-content/uploads/2024/04/Logo-icon-1.png.webp" alt=""></span>
+        <span class="brand-name"><strong>HR</strong> for Health</span>
+      </header>
+      <div class="hero-copy">
+        <p class="eyebrow">HRFH web app</p>
+        <h1 id="page-title">Add the HRFH web app</h1>
+        <p id="intro-copy" class="intro">Your HR for Health portal, one tap from your home screen.</p>
+      </div>
+      <div id="platform-content" class="platform-content" aria-live="polite"><p>Checking this device…</p></div>
+      <div class="actions">
+        <button id="install-button" class="button button-primary" type="button" hidden>Install HRFH web app</button>
+        <a id="open-button" class="button button-secondary" href="https://myhrfh.com" rel="noopener">Open myHRFH</a>
+        <button id="reinstall-button" class="button button-quiet" type="button" hidden>Reinstall</button>
+      </div>
+      <p id="status-message" class="status" role="status" aria-live="polite"></p>
+      <footer class="trust-note"><span class="trust-dot" aria-hidden="true"></span>Opens <strong>myhrfh.com</strong></footer>
+    </section>
+  </main>
+
+  <div id="ios-install-modal" class="ios-install-modal" role="dialog" aria-modal="true" aria-labelledby="ios-modal-title" hidden>
+    <div id="ios-toolbar-guide" class="ios-toolbar-guide" aria-hidden="true" hidden>
+      <span id="ios-guide-spotlight" class="ios-guide-spotlight"></span><span id="ios-guide-arrow" class="ios-guide-arrow"></span>
+    </div>
+    <section class="ios-install-sheet">
+      <button id="ios-modal-dismiss" class="ios-modal-close" type="button" aria-label="Close install instructions">×</button>
+      <div class="ios-modal-brand" aria-hidden="true"><span class="ios-modal-icon-shell"><img src="https://hrforhealth.com/wp-content/uploads/2024/04/Logo-icon-1.png.webp" alt=""></span></div>
+      <p class="ios-modal-eyebrow">HRFH web app</p>
+      <h2 id="ios-modal-title">Add HRFH web app</h2>
+      <p id="ios-modal-copy" class="ios-modal-copy">Tap Share, then Add to Home Screen.</p>
+      <div class="ios-guide-steps" aria-label="Install steps">
+        <div class="ios-guide-step"><span class="ios-guide-number" aria-hidden="true">1</span><span id="ios-guide-step-one">Tap Share</span></div>
+        <div class="ios-guide-step"><span class="ios-guide-number" aria-hidden="true">2</span><span id="ios-guide-step-two">Add to Home Screen</span></div>
+      </div>
+      <div id="ios-share-cue" class="ios-share-cue" aria-hidden="true">
+        <span class="ios-share-glyph"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M12 3v11"></path><path d="m8.25 6.75 3.75-3.75 3.75 3.75"></path><path d="M7.25 10H5.8A1.8 1.8 0 0 0 4 11.8v6.4A1.8 1.8 0 0 0 5.8 20h12.4a1.8 1.8 0 0 0 1.8-1.8v-6.4a1.8 1.8 0 0 0-1.8-1.8h-1.45"></path></svg></span>
+        <span id="ios-share-label">Share</span>
+      </div>
+      <div id="ios-browser-actions" class="ios-browser-actions" hidden>
+        <button id="ios-open-chrome" class="ios-browser-primary" type="button">Open in Google Chrome</button>
+        <button id="ios-use-safari" class="ios-browser-secondary" type="button">Continue in Safari</button>
+      </div>
+      <p id="ios-modal-note" class="ios-modal-note">Choose <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>.</p>
+    </section>
+  </div>
+</body>
+</html>

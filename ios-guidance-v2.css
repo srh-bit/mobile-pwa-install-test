@@ -1,0 +1,217 @@
+/* Confidence-aware iOS install guidance. Browser chrome itself is outside the page viewport. */
+.ios-install-modal.ios-v2-active .ios-guide-spotlight,
+.ios-install-modal.ios-v2-active .ios-guide-arrow,
+.ios-install-modal.ios-v2-active .ios-share-cue {
+  display: none !important;
+}
+
+.ios-v2-toolbar-preview {
+  width: 100%;
+  margin: 14px 0 0;
+  padding: 12px;
+  border: 1px solid rgba(74, 13, 127, 0.1);
+  border-radius: 17px;
+  background: linear-gradient(145deg, rgba(251, 249, 252, 0.98), rgba(245, 239, 249, 0.9));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96), 0 8px 20px rgba(74, 13, 127, 0.06);
+  color: #55495c;
+  text-align: left;
+}
+
+.ios-v2-toolbar-caption {
+  margin: 0 0 8px;
+  color: #776c7d;
+  font-size: 0.72rem;
+  font-weight: 760;
+  letter-spacing: 0.01em;
+}
+
+.ios-v2-address-row,
+.ios-v2-toolbar-row {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ios-v2-address-pill {
+  min-width: 0;
+  flex: 1;
+  padding: 9px 12px;
+  overflow: hidden;
+  border: 1px solid rgba(83, 72, 90, 0.12);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #665c6c;
+  font-size: 0.78rem;
+  font-weight: 650;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ios-v2-share-icon {
+  width: 39px;
+  height: 39px;
+  flex: 0 0 39px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid rgba(74, 13, 127, 0.68);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--brand-purple);
+  box-shadow: 0 6px 15px rgba(74, 13, 127, 0.1);
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.ios-v2-share-icon span {
+  transform: translateY(-2px);
+}
+
+.ios-v2-toolbar-row {
+  justify-content: space-around;
+  padding: 3px 6px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.ios-v2-tool-muted,
+.ios-v2-more {
+  min-width: 34px;
+  text-align: center;
+  color: #766b7c;
+  font-size: 1.15rem;
+  font-weight: 750;
+}
+
+.ios-v2-more {
+  letter-spacing: 0.08em;
+}
+
+.ios-v2-toolbar-preview p {
+  margin: 9px 2px 0;
+  color: #706676;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.ios-v2-recovery {
+  margin: 10px 0 0;
+  border-top: 1px solid rgba(74, 13, 127, 0.08);
+  padding-top: 10px;
+  color: #726777;
+  font-size: 0.76rem;
+  text-align: left;
+}
+
+.ios-v2-recovery summary {
+  width: fit-content;
+  margin: 0 auto;
+  color: var(--brand-purple);
+  font-weight: 720;
+  cursor: pointer;
+}
+
+.ios-v2-recovery p {
+  margin: 8px auto 0;
+  max-width: 34ch;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.ios-v2-recovery strong {
+  color: var(--brand-purple);
+}
+
+.ios-v2-edge-guide {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  pointer-events: none;
+}
+
+.ios-v2-edge-label {
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 239, 251, 0.92));
+  color: var(--brand-purple);
+  box-shadow: 0 8px 22px rgba(39, 22, 48, 0.18);
+  font-size: 0.74rem;
+  font-weight: 780;
+}
+
+.ios-v2-edge-arrow {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(246, 161, 61, 0.9);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--brand-coral);
+  box-shadow: 0 0 0 7px rgba(246, 161, 61, 0.12), 0 8px 22px rgba(39, 22, 48, 0.16);
+  font-size: 1.05rem;
+  font-weight: 850;
+  animation: ios-v2-edge-pulse 1.7s ease-in-out infinite;
+}
+
+.ios-v2-exact-top-right .ios-v2-top-right {
+  top: max(7px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+}
+
+/* Safari iPhone keeps its share-related controls in the bottom toolbar region.
+   Compact can hide Share behind More; Bottom/Top layouts can expose Share directly. */
+.ios-install-modal.ios-v2-safari-phone.ios-v2-active {
+  padding-bottom: max(88px, calc(env(safe-area-inset-bottom) + 76px));
+}
+
+.ios-v2-safari-phone .ios-v2-bottom-region {
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(7px, env(safe-area-inset-bottom));
+}
+
+/* Chrome portrait intentionally has no edge marker. Its address bar can be top or bottom,
+   so the miniature toolbar is the accurate guidance instead of a false coordinate. */
+.ios-v2-chrome-phone-portrait .ios-toolbar-guide {
+  display: none !important;
+}
+
+@keyframes ios-v2-edge-pulse {
+  0%, 100% {
+    transform: scale(0.96);
+    box-shadow: 0 0 0 6px rgba(246, 161, 61, 0.1), 0 8px 22px rgba(39, 22, 48, 0.16);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow: 0 0 0 10px rgba(246, 161, 61, 0.16), 0 10px 28px rgba(39, 22, 48, 0.2);
+  }
+}
+
+@media (min-width: 700px) {
+  .ios-v2-toolbar-preview {
+    max-width: 360px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .ios-v2-toolbar-preview {
+    display: none;
+  }
+
+  .ios-v2-recovery {
+    margin-top: 6px;
+    padding-top: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ios-v2-edge-arrow {
+    animation: none;
+  }
+}

@@ -1,0 +1,32 @@
+name: Validate PWA prototype
+
+on:
+  push:
+    branches:
+      - feature/pwa-install-prototype
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Check browser script syntax
+        run: |
+          node --check install.js
+          node --check ios-guidance-v2.js
+          node --check service-worker.js
+      - name: Run repository validation
+        run: node --test tests/*.mjs

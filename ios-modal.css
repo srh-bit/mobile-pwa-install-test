@@ -1,0 +1,369 @@
+body.ios-modal-open {
+  overflow: hidden;
+}
+
+.ios-install-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  align-items: end;
+  justify-items: center;
+  padding: 24px 14px max(12px, env(safe-area-inset-bottom));
+  background: rgba(28, 18, 34, 0.36);
+  backdrop-filter: blur(12px) saturate(115%);
+  -webkit-backdrop-filter: blur(12px) saturate(115%);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.ios-install-modal.is-visible {
+  opacity: 1;
+}
+
+.ios-install-sheet {
+  position: relative;
+  z-index: 1003;
+  width: min(100%, 420px);
+  overflow: visible;
+  padding: 28px 24px 26px;
+  border: 1px solid rgba(74, 13, 127, 0.1);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(251, 248, 252, 0.96));
+  box-shadow:
+    0 30px 80px rgba(33, 18, 44, 0.28),
+    0 8px 24px rgba(74, 13, 127, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  text-align: center;
+  transform: translateY(18px) scale(0.985);
+  transition: transform 210ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ios-install-modal.is-visible .ios-install-sheet {
+  transform: translateY(0) scale(1);
+}
+
+.ios-install-sheet::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  border-radius: 28px 28px 0 0;
+  background: linear-gradient(90deg, var(--brand-orange), var(--brand-coral) 44%, var(--brand-purple-bright));
+}
+
+.ios-toolbar-guide {
+  position: fixed;
+  inset: 0;
+  z-index: 1002;
+  pointer-events: none;
+}
+
+.ios-guide-spotlight,
+.ios-guide-arrow {
+  position: absolute;
+  z-index: 1;
+}
+
+.ios-guide-spotlight {
+  width: 72px;
+  height: 72px;
+  border: 3px solid rgba(255, 143, 61, 0.98);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 0 0 9px rgba(255, 143, 61, 0.16),
+    0 0 0 18px rgba(255, 101, 94, 0.08),
+    0 10px 32px rgba(47, 24, 57, 0.24);
+  animation: ios-guide-pulse 1.55s ease-in-out infinite;
+}
+
+.ios-guide-arrow {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgba(122, 39, 181, 0.96), rgba(74, 13, 127, 0.98));
+  color: #fff;
+  box-shadow: 0 12px 28px rgba(35, 18, 45, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.ios-install-modal.ios-guide-bottom .ios-guide-spotlight {
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(4px, env(safe-area-inset-bottom));
+}
+
+.ios-install-modal.ios-guide-bottom .ios-guide-arrow {
+  right: max(86px, calc(env(safe-area-inset-right) + 78px));
+  bottom: max(66px, calc(env(safe-area-inset-bottom) + 58px));
+  transform: rotate(38deg);
+}
+
+.ios-install-modal.ios-guide-top .ios-guide-spotlight {
+  right: max(18px, env(safe-area-inset-right));
+  top: max(4px, env(safe-area-inset-top));
+}
+
+.ios-install-modal.ios-guide-top .ios-guide-arrow {
+  right: max(86px, calc(env(safe-area-inset-right) + 78px));
+  top: max(66px, calc(env(safe-area-inset-top) + 58px));
+  transform: rotate(142deg);
+}
+
+.ios-install-modal.ios-guide-chrome .ios-guide-spotlight {
+  border-color: rgba(255, 143, 61, 0.98);
+}
+
+.ios-install-modal.ios-guide-safari .ios-guide-spotlight {
+  border-color: rgba(255, 101, 94, 0.98);
+}
+
+.ios-install-modal.ios-guide-ipad .ios-guide-spotlight {
+  width: 82px;
+  height: 64px;
+  border-radius: 22px;
+}
+
+@keyframes ios-guide-pulse {
+  0%, 100% {
+    transform: scale(0.96);
+    opacity: 0.88;
+  }
+  50% {
+    transform: scale(1.07);
+    opacity: 1;
+  }
+}
+
+.ios-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(74, 13, 127, 0.08);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(247, 243, 250, 0.88);
+  color: #6c6371;
+  font-size: 1.45rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ios-modal-close:focus-visible,
+.ios-browser-primary:focus-visible,
+.ios-browser-secondary:focus-visible {
+  outline: 3px solid rgba(141, 75, 216, 0.28);
+  outline-offset: 2px;
+}
+
+.ios-modal-brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.ios-modal-icon-shell {
+  width: 62px;
+  height: 62px;
+  padding: 7px;
+  border: 1px solid rgba(74, 13, 127, 0.09);
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(244, 236, 249, 0.7));
+  box-shadow: 0 12px 28px rgba(74, 13, 127, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+
+.ios-modal-icon-shell img {
+  width: 48px;
+  height: 48px;
+  display: block;
+  object-fit: contain;
+}
+
+.ios-modal-eyebrow {
+  margin: 0 0 7px;
+  color: var(--brand-purple);
+  font-size: 0.78rem;
+  font-weight: 760;
+}
+
+.ios-install-sheet h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.65rem;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.ios-modal-copy {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.ios-guide-steps {
+  margin: 18px 0 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.ios-guide-step {
+  min-height: 70px;
+  padding: 11px 10px;
+  border: 1px solid rgba(74, 13, 127, 0.1);
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 5px;
+  background: linear-gradient(145deg, rgba(249, 246, 252, 0.98), rgba(245, 238, 250, 0.82));
+  color: #4b4053;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  font-size: 0.83rem;
+  font-weight: 720;
+  line-height: 1.25;
+}
+
+.ios-guide-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #7927b5, var(--brand-purple));
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  box-shadow: 0 5px 12px rgba(74, 13, 127, 0.18);
+}
+
+.ios-share-cue {
+  position: relative;
+  width: fit-content;
+  margin: 16px auto 0;
+  padding: 10px 15px 11px 11px;
+  border: 1px solid rgba(74, 13, 127, 0.11);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: linear-gradient(145deg, rgba(248, 243, 252, 0.98), rgba(242, 233, 249, 0.88));
+  color: var(--brand-purple);
+  box-shadow: 0 9px 22px rgba(74, 13, 127, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  font-size: 0.88rem;
+  font-weight: 740;
+}
+
+.ios-share-cue::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 18px;
+  height: 18px;
+  border-right: 1px solid rgba(74, 13, 127, 0.11);
+  border-bottom: 1px solid rgba(74, 13, 127, 0.11);
+  background: #f4edf9;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.ios-share-glyph {
+  width: 31px;
+  height: 31px;
+  border: 1.5px solid currentColor;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  padding-bottom: 4px;
+  font-size: 1.22rem;
+  line-height: 1;
+}
+
+.ios-browser-actions {
+  margin-top: 20px;
+  display: grid;
+  gap: 9px;
+}
+
+.ios-browser-primary,
+.ios-browser-secondary {
+  width: 100%;
+  min-height: 50px;
+  border-radius: 15px;
+  padding: 12px 16px;
+  font: inherit;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.ios-browser-primary {
+  border: 0;
+  background: linear-gradient(145deg, #7927b5 0%, #5b158f 45%, var(--brand-purple) 100%);
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(74, 13, 127, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.ios-browser-secondary {
+  border: 1px solid rgba(74, 13, 127, 0.14);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--brand-purple);
+}
+
+.ios-modal-note {
+  margin: 18px auto 0;
+  max-width: 31ch;
+  color: #756d7a;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.ios-modal-note strong {
+  color: var(--brand-purple);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@media (min-width: 700px) {
+  .ios-install-modal {
+    align-items: center;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .ios-install-sheet {
+    width: min(88vw, 520px);
+    padding: 20px 22px;
+  }
+
+  .ios-modal-brand,
+  .ios-share-cue {
+    display: none;
+  }
+
+  .ios-guide-steps {
+    margin-top: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ios-install-modal,
+  .ios-install-sheet {
+    transition: none;
+  }
+
+  .ios-guide-spotlight {
+    animation: none;
+  }
+}
