@@ -12,7 +12,7 @@ test('manifest declares itself as a related web app for installed-state detectio
   assert.equal(manifest.prefer_related_applications, false);
 });
 
-test('desktop controller restores pre-Marketing receipt and native-prompt behavior', async () => {
+test('desktop controller keeps receipt fallback but lets a fresh browser install prompt invalidate stale desktop state', async () => {
   const js = await read('install.js');
   const launch = await read('launch.html');
   const promptHandler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
@@ -24,9 +24,9 @@ test('desktop controller restores pre-Marketing receipt and native-prompt behavi
   assert.match(js, /function clearInstallReceipt\(/i);
   assert.match(js, /navigator\.getInstalledRelatedApps/i);
   assert.match(promptHandler, /deferredInstallPrompt\s*=\s*event/i);
-  assert.match(promptHandler, /installedStateDetected\s*\|\|\s*readInstallReceipt\(\)/i);
-  assert.match(promptHandler, /installButton\.hidden\s*=\s*true/i);
-  assert.doesNotMatch(promptHandler, /clearInstallReceipt\(\)/i);
+  assert.match(promptHandler, /if\s*\(isAndroid\(\)\s*&&\s*\(installedStateDetected\s*\|\|\s*readInstallReceipt\(\)\)\)/i);
+  assert.match(promptHandler, /if\s*\(!isAndroid\(\)\)[\s\S]*clearInstallReceipt\(\)[\s\S]*installedStateDetected\s*=\s*false/i);
+  assert.match(promptHandler, /renderInstallReady\(\)/i);
   assert.match(initialState, /installationState === ['"]unknown['"]\s*&&\s*readInstallReceipt\(\)/i);
   assert.match(initialState, /deferredInstallPrompt\s*\|\|\s*await waitForInstallPrompt\(\)/i);
   assert.match(js, /appinstalled[\s\S]*writeInstallReceipt\(\)/s);
@@ -35,7 +35,7 @@ test('desktop controller restores pre-Marketing receipt and native-prompt behavi
   assert.match(launch, /window\.location\.replace\(['"]https:\/\/myhrfh\.com['"]\)/i);
 });
 
-test('empty related-app result is definitive only on Android while desktop remains unknown', async () => {
+test('empty related-app result remains definitive only on Android when the browser API cannot prove desktop self-PWA support', async () => {
   const js = await read('install.js');
   const stateFunction = js.match(/async function getInstallationState\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
   assert.match(stateFunction, /if\s*\(isAndroid\(\)\)[\s\S]*return ['"]not-installed['"]/i);
