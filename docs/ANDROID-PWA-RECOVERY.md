@@ -8,6 +8,14 @@ On supported Android Chrome, `navigator.getInstalledRelatedApps()` can confirm w
 
 A successful matching result means the PWA is installed. A successful empty result on Android means the related PWA is not installed and stale fallback receipt state can be discarded. Unsupported/error states remain unknown and may fall back to the local install receipt.
 
+## Chromium installability prerequisite
+
+The custom Install button depends on Chromium first accepting the page as an installable PWA and delivering `beforeinstallprompt`. A missing button can therefore be caused by PWA installability, not only controller state.
+
+A regression in the launcher PNG binaries caused current Chrome to report `no-acceptable-icon`, preventing `beforeinstallprompt` on both Android and Desktop. The accepted launcher binaries from Android duplicate-prevention head `337a6b1acdb611c7ee5698c0598696fb2ed35260` are the current runtime assets. The manifest exposes them as 192x192 and 512x512 PNG icons with `purpose: any`.
+
+CI now launches real Chromium and requires DevTools `Page.getInstallabilityErrors` to return no errors. This is a browser-level guard in addition to static manifest and PNG checks.
+
 ## What the browser cannot know
 
 The web platform does not expose Android's launcher/Home Screen icon inventory. The installer therefore cannot distinguish:
@@ -30,3 +38,5 @@ There is no Restore or Uninstall control on Android. If a user later removes onl
 ## Duplicate-install prevention
 
 Positive installed evidence is checked before the page exposes another install action. `beforeinstallprompt` by itself never deletes positive evidence. On Android Chrome where the self-related-app probe succeeds, an empty result is allowed to clear a stale receipt so a genuinely removed PWA can be installed again.
+
+Cache identity `myhrfh-installer-v11` deliberately replaces the v10 shell so devices that cached the rejected launcher assets receive the accepted binaries and manifest.
