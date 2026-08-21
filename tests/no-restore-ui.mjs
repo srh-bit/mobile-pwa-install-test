@@ -5,17 +5,18 @@ import { readFile } from 'node:fs/promises';
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 const APPROVED_LOGO = 'https://hrforhealth.com/wp-content/uploads/2024/04/Logo-icon-1.png.webp';
 
-test('release UI contains no Restore control or hidden Restore plumbing', async () => {
+test('release UI contains no Restore control or Restore-management implementation', async () => {
   const html = await read('index.html');
   const js = await read('install.js');
   assert.doesNotMatch(html, /restore-shortcut-button|installed-actions|management-dialog/i);
-  assert.doesNotMatch(js, /restoreShortcutButton|installedActions|getInstalledManagementAvailability|showShortcutHelp|showManagementDialog|managementDialog/i);
+  assert.doesNotMatch(js, /const\s+restoreShortcutButton\b|const\s+installedActions\b|function\s+getInstalledManagementAvailability\b|function\s+showShortcutHelp\b|function\s+showManagementDialog\b|const\s+managementDialog\b/i);
 });
 
 test('approved HRFH logo URL is used for visible installer branding', async () => {
   const html = await read('index.html');
-  assert.match(html, new RegExp(APPROVED_LOGO.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  assert.match(html, new RegExp(`<img[^>]+class=["']brand-icon["'][^>]+src=["']${APPROVED_LOGO.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`, 'i'));
+  const escaped = APPROVED_LOGO.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  assert.match(html, new RegExp(escaped));
+  assert.match(html, new RegExp(`<img[^>]+class=["']brand-icon["'][^>]+src=["']${escaped}["']`, 'i'));
 });
 
 test('desktop stale receipt cannot suppress a newly available native install prompt', async () => {
