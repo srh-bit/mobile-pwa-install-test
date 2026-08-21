@@ -22,14 +22,16 @@ test('pre-Marketing refresh uses the install receipt when the browser probe is u
   assert.match(initialState, /installationState === ['"]not-installed['"][\s\S]*clearInstallReceipt\(\)/);
 });
 
-test('pre-Marketing beforeinstallprompt preserves recorded installed evidence', async () => {
+test('Android beforeinstallprompt preserves recorded installed evidence while desktop may invalidate stale receipt', async () => {
   const js = await read('install.js');
   const handler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
+  const androidGuard = handler.match(/if\s*\(isAndroid\(\)\s*&&\s*\(installedStateDetected\s*\|\|\s*readInstallReceipt\(\)\)\)\s*\{([\s\S]*?)\n\s*\}/i)?.[1] ?? '';
   assert.match(handler, /deferredInstallPrompt\s*=\s*event/);
-  assert.match(handler, /installedStateDetected\s*\|\|\s*readInstallReceipt\(\)/);
-  assert.match(handler, /installButton\.hidden\s*=\s*true/);
+  assert.match(androidGuard, /installButton\.hidden\s*=\s*true/);
+  assert.match(androidGuard, /return/);
+  assert.doesNotMatch(androidGuard, /clearInstallReceipt\(\)/);
+  assert.match(handler, /if\s*\(!isAndroid\(\)\)[\s\S]*clearInstallReceipt\(\)/i);
   assert.match(handler, /renderInstallReady\(\)/);
-  assert.doesNotMatch(handler, /clearInstallReceipt\(\)/);
 });
 
 test('accepted Android install writes the receipt immediately', async () => {
