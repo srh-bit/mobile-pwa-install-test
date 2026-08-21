@@ -5,8 +5,6 @@ const INSTALL_RECEIPT_KEY = 'myhrfh-install-receipt-v1';
 const installButton = document.getElementById('install-button');
 const openButton = document.getElementById('open-button');
 const reinstallButton = document.getElementById('reinstall-button');
-const restoreShortcutButton = document.getElementById('restore-shortcut-button');
-const installedActions = document.getElementById('installed-actions');
 const platformContent = document.getElementById('platform-content');
 const statusMessage = document.getElementById('status-message');
 const pageTitle = document.getElementById('page-title');
@@ -14,12 +12,6 @@ const introCopy = document.getElementById('intro-copy');
 const card = document.querySelector('.install-card');
 const iosInstallModal = document.getElementById('ios-install-modal');
 const iosModalDismiss = document.getElementById('ios-modal-dismiss');
-const managementDialog = document.getElementById('management-dialog');
-const managementTitle = document.getElementById('management-title');
-const managementCopy = document.getElementById('management-copy');
-const managementSteps = document.getElementById('management-steps');
-const managementClose = document.getElementById('management-close');
-const managementDone = document.getElementById('management-done');
 
 let deferredInstallPrompt = null;
 let installedStateDetected = false;
@@ -73,15 +65,6 @@ function isIOSSafari() {
 function isDesktopSafari() {
   const ua = userAgent();
   return isMacOS() && /Safari/i.test(ua) && !/Chrome|Chromium|CriOS|Edg|OPR|Firefox|FxiOS/i.test(ua);
-}
-
-function isEdgeDesktop() {
-  return !isIOS() && !isAndroid() && /Edg\//i.test(userAgent());
-}
-
-function isChromeDesktop() {
-  const ua = userAgent();
-  return !isIOS() && !isAndroid() && /Chrome|Chromium/i.test(ua) && !/Edg|OPR/i.test(ua);
 }
 
 function environment() {
@@ -169,9 +152,7 @@ function setStatus(message = '') {
 function resetInstalledActions() {
   installedStateDetected = false;
   card.classList.remove('installed');
-  installedActions.hidden = true;
   reinstallButton.hidden = true;
-  restoreShortcutButton.hidden = true;
   openButton.textContent = 'Open myHRFH';
   openButton.href = MYHRFH_URL;
   openButton.classList.remove('button-primary');
@@ -218,14 +199,6 @@ function renderIOSInstructions() {
   showIOSInstallModal();
 }
 
-function getInstalledManagementAvailability({ confirmed = false } = {}) {
-  if (!confirmed || isIOS()) return { restore: false };
-  if (isAndroid()) return { restore: false };
-  return {
-    restore: isChromeDesktop() || isEdgeDesktop() || (isMacOS() && isDesktopSafari())
-  };
-}
-
 function setInstalledState(message = 'HRFH web app is installed.', { confirmed = true } = {}) {
   installedStateDetected = confirmed;
   hideIOSInstallModal();
@@ -233,14 +206,8 @@ function setInstalledState(message = 'HRFH web app is installed.', { confirmed =
   reinstallButton.hidden = !(confirmed && isAndroid());
   card.classList.add('installed');
 
-  const management = getInstalledManagementAvailability({ confirmed });
-  restoreShortcutButton.hidden = !management.restore;
-  installedActions.hidden = !management.restore;
-
   pageTitle.textContent = 'HRFH web app is installed';
-  introCopy.textContent = management.restore
-    ? 'Open it now or restore quick access on this device.'
-    : 'Open the HRFH web app from this device.';
+  introCopy.textContent = 'Open the HRFH web app from this device.';
   openButton.textContent = 'Open HRFH web app';
   openButton.href = './launch.html';
   openButton.classList.remove('button-secondary');
@@ -248,74 +215,10 @@ function setInstalledState(message = 'HRFH web app is installed.', { confirmed =
 
   if (isAndroid()) {
     platformContent.innerHTML = '<p><strong>The myHRFH icon was added to your Home Screen.</strong></p>';
-  } else if (management.restore) {
-    platformContent.innerHTML = `<p><strong>${message}</strong><br>Shortcut placement is managed by your device. If quick access is missing, use Restore shortcut below.</p>`;
   } else {
     platformContent.innerHTML = `<p><strong>${message}</strong><br>Open the HRFH web app when you are ready.</p>`;
   }
   setStatus();
-}
-
-function setManagementContent(title, copy, steps) {
-  managementTitle.textContent = title;
-  managementCopy.textContent = copy;
-  managementSteps.replaceChildren();
-  steps.forEach((step) => {
-    const item = document.createElement('li');
-    item.textContent = step;
-    managementSteps.append(item);
-  });
-}
-
-function showManagementDialog() {
-  if (typeof managementDialog.showModal === 'function') {
-    managementDialog.showModal();
-    managementClose?.focus({ preventScroll: true });
-    return;
-  }
-  managementDialog.setAttribute('open', '');
-}
-
-function closeManagementDialog() {
-  if (typeof managementDialog.close === 'function' && managementDialog.open) {
-    managementDialog.close();
-    return;
-  }
-  managementDialog.removeAttribute('open');
-}
-
-function showShortcutHelp() {
-  const copy = 'Shortcut placement is managed by your device.';
-  let steps;
-
-  if (isEdgeDesktop()) {
-    steps = [
-      'Open edge://apps in Microsoft Edge.',
-      'Find myHRFH and open its app details.',
-      'Choose Create Desktop shortcut or pin it where you want quick access.'
-    ];
-  } else if (isChromeDesktop()) {
-    steps = [
-      'Open chrome://apps in Google Chrome.',
-      'Find myHRFH and open its app options.',
-      'Choose Create shortcut to restore desktop or menu access.'
-    ];
-  } else if (isDesktopSafari()) {
-    steps = [
-      'Open Applications and find myHRFH.',
-      'Drag myHRFH to the Dock if you want a Dock shortcut.',
-      'If it is not in Applications, return to Safari and choose File → Add to Dock.'
-    ];
-  } else {
-    steps = [
-      'Open your browser’s installed-apps or applications page.',
-      'Find myHRFH and use the browser or operating-system shortcut option.',
-      'If myHRFH is not listed, return here and install it again.'
-    ];
-  }
-
-  setManagementContent('Restore shortcut', copy, steps);
-  showManagementDialog();
 }
 
 function renderAndroidFallback() {
@@ -383,12 +286,16 @@ async function renderInitialState() {
     return;
   }
 
-  if (installationState === 'unknown' && readInstallReceipt()) {
+  if (installationState === 'unknown' && isAndroid() && readInstallReceipt()) {
     setInstalledState('HRFH web app was previously installed.', { confirmed: true });
     return;
   }
 
   if (installationState === 'not-installed') {
+    clearInstallReceipt();
+  }
+
+  if (!isAndroid()) {
     clearInstallReceipt();
   }
 
@@ -403,7 +310,7 @@ async function renderInitialState() {
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
   deferredInstallPrompt = event;
-  if (installedStateDetected || readInstallReceipt()) {
+  if (installedStateDetected || (isAndroid() && readInstallReceipt())) {
     installButton.hidden = true;
     return;
   }
@@ -454,12 +361,6 @@ reinstallButton?.addEventListener('click', () => {
   window.location.reload();
 });
 
-restoreShortcutButton?.addEventListener('click', showShortcutHelp);
-managementClose?.addEventListener('click', closeManagementDialog);
-managementDone?.addEventListener('click', closeManagementDialog);
-managementDialog?.addEventListener('click', (event) => {
-  if (event.target === managementDialog) closeManagementDialog();
-});
 iosModalDismiss?.addEventListener('click', hideIOSInstallModal);
 iosInstallModal?.addEventListener('click', (event) => {
   if (event.target === iosInstallModal) hideIOSInstallModal();
