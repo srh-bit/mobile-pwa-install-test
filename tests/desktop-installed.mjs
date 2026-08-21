@@ -12,17 +12,20 @@ test('manifest declares itself as a related web app for installed-state detectio
   assert.equal(manifest.prefer_related_applications, false);
 });
 
-test('desktop controller combines browser detection with a standalone install receipt', async () => {
+test('desktop controller keeps receipt helpers but live installability supersedes stale fallback state', async () => {
   const js = await read('install.js');
   const launch = await read('launch.html');
   const promptHandler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
+  const initialState = js.match(/async function renderInitialState\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
   assert.match(js, /INSTALL_RECEIPT_KEY\s*=\s*['"]myhrfh-install-receipt-v1['"]/i);
   assert.match(js, /function readInstallReceipt\(/i);
   assert.match(js, /function writeInstallReceipt\(/i);
   assert.match(js, /function clearInstallReceipt\(/i);
   assert.match(js, /navigator\.getInstalledRelatedApps/i);
-  assert.match(promptHandler, /readInstallReceipt\(\)/);
-  assert.doesNotMatch(promptHandler, /clearInstallReceipt\(\)/);
+  assert.match(promptHandler, /deferredInstallPrompt\s*=\s*event/i);
+  assert.match(promptHandler, /clearInstallReceipt\(\)/i);
+  assert.doesNotMatch(promptHandler, /readInstallReceipt\(\)/i);
+  assert.match(initialState, /if\s*\(!isAndroid\(\)\)\s*\{[\s\S]*clearInstallReceipt\(\)/i);
   assert.match(js, /appinstalled[\s\S]*writeInstallReceipt\(\)/s);
   assert.match(launch, /display-mode:\s*standalone/i);
   assert.match(launch, /localStorage\.setItem\(['"]myhrfh-install-receipt-v1['"],\s*['"]installed['"]\)/i);
