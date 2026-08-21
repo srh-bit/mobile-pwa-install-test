@@ -3,9 +3,27 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+const APPROVED_LOGO = 'https://hrforhealth.com/wp-content/uploads/2024/04/Logo-icon-1.png.webp';
 
-test('release UI exposes no Restore button or Restore shortcut action', async () => {
+test('release UI contains no Restore control or hidden Restore plumbing', async () => {
   const html = await read('index.html');
-  assert.doesNotMatch(html, /<button[^>]+id=["']restore-shortcut-button["']/i);
-  assert.doesNotMatch(html, />\s*Restore Home Screen shortcut\s*</i);
+  const js = await read('install.js');
+  assert.doesNotMatch(html, /restore-shortcut-button|installed-actions|management-dialog/i);
+  assert.doesNotMatch(js, /restoreShortcutButton|installedActions|getInstalledManagementAvailability|showShortcutHelp|showManagementDialog|managementDialog/i);
+});
+
+test('approved HRFH logo URL is used for visible installer branding', async () => {
+  const html = await read('index.html');
+  assert.match(html, new RegExp(APPROVED_LOGO.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(html, new RegExp(`<img[^>]+class=["']brand-icon["'][^>]+src=["']${APPROVED_LOGO.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`, 'i'));
+});
+
+test('desktop stale receipt cannot suppress a newly available native install prompt', async () => {
+  const js = await read('install.js');
+  const initialState = js.match(/async function renderInitialState\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
+  const promptHandler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
+
+  assert.match(initialState, /installationState === ['"]unknown['"][\s\S]*isAndroid\(\)[\s\S]*readInstallReceipt\(\)/i);
+  assert.doesNotMatch(initialState, /installationState === ['"]unknown['"]\s*&&\s*readInstallReceipt\(\)/i);
+  assert.match(promptHandler, /installedStateDetected\s*\|\|\s*\(isAndroid\(\)\s*&&\s*readInstallReceipt\(\)\)/i);
 });
