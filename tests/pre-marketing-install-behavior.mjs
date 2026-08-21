@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 const functionBody = (source, signature) => source.match(new RegExp(`${signature}\\s*\\{([\\s\\S]*?)\\n\\}`, 'i'))?.[1] ?? '';
 
-test('Android and desktop restore the exact pre-Marketing native-prompt timing contract', async () => {
+test('Android and desktop retain the pre-Marketing native-prompt timing contract', async () => {
   const js = await read('install.js');
   assert.match(js, /const INSTALL_PROMPT_WAIT_MS\s*=\s*1200;/);
 
@@ -34,15 +34,17 @@ test('pre-Marketing fallbacks do not expose a dead Install button', async () => 
   assert.doesNotMatch(desktop, /installButton\.textContent/);
 });
 
-test('pre-Marketing beforeinstallprompt exposes Install only for a live browser prompt', async () => {
+test('beforeinstallprompt exposes Install for a live desktop prompt while retaining the Android duplicate guard', async () => {
   const js = await read('install.js');
   const handler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
+  const androidGuard = handler.match(/if\s*\(isAndroid\(\)\s*&&\s*\(installedStateDetected\s*\|\|\s*readInstallReceipt\(\)\)\)\s*\{([\s\S]*?)\n\s*\}/i)?.[1] ?? '';
 
   assert.match(handler, /deferredInstallPrompt\s*=\s*event/);
-  assert.match(handler, /installedStateDetected\s*\|\|\s*readInstallReceipt\(\)/);
-  assert.match(handler, /installButton\.hidden\s*=\s*true/);
+  assert.match(androidGuard, /installButton\.hidden\s*=\s*true/);
+  assert.match(androidGuard, /return/);
+  assert.doesNotMatch(androidGuard, /clearInstallReceipt\(\)/);
+  assert.match(handler, /if\s*\(!isAndroid\(\)\)[\s\S]*clearInstallReceipt\(\)[\s\S]*installedStateDetected\s*=\s*false/);
   assert.match(handler, /renderInstallReady\(\)/);
-  assert.doesNotMatch(handler, /clearInstallReceipt\(\)/);
 });
 
 test('pre-Marketing click lifecycle never leaves a nonfunctional Install action visible', async () => {
@@ -55,7 +57,7 @@ test('pre-Marketing click lifecycle never leaves a nonfunctional Install action 
   assert.doesNotMatch(click, /Installation cancelled\. You can try again\./);
 });
 
-test('approved iOS install interaction remains frozen while Android and desktop revert', async () => {
+test('approved iOS install interaction remains frozen while Android and desktop recovery evolves', async () => {
   const js = await read('install.js');
   const ios = functionBody(js, 'function renderIOSInstructions\\(\\)');
   assert.match(ios, /installButton\.hidden\s*=\s*false/);
