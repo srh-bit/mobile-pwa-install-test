@@ -14,6 +14,8 @@ The first reconciliation restored the pre-Marketing controller lifecycle, but ph
 
 A trial that added `maskable` manifest declarations did not remove the Chromium error and was rejected. Restoring the exact launcher PNG blobs from `337a6b1acdb611c7ee5698c0598696fb2ed35260`, together with the accepted two-icon `purpose: any` manifest contract, changed the same browser-level test to zero installability errors. That exact historical launcher asset set is therefore the governing installability baseline.
 
+A later physical Desktop test found a second, independent state issue: after the PWA was uninstalled in the browser, the page could remain on **HRFH web app was previously installed** because the same-origin install receipt survived the uninstall. The receipt remains useful fallback evidence, but it cannot outrank a new browser-owned signal that the PWA is installable again.
+
 Current no-Restore/no-Uninstall cleanup and the approved iOS experience remain in place.
 
 ## Governing state model
@@ -22,11 +24,12 @@ Current no-Restore/no-Uninstall cleanup and the approved iOS experience remain i
 2. **Installed confirmed** — show Open; Android also shows Reinstall. Do not expose Restore or Uninstall controls.
 3. **Chromium technical installability** — manifest, launcher assets, service worker, and scope must be acceptable to Chromium. CI verifies this with a real browser before controller behavior is considered valid.
 4. **Chromium native prompt pending** — after installed-state assessment, wait up to 1.2 seconds for the browser's real `beforeinstallprompt` event.
-5. **Chromium native prompt available** — show **Install HRFH web app** and let that button invoke the captured native prompt.
-6. **Native prompt unavailable** — hide the custom Install button rather than expose a dead action. Android uses browser-menu **Install app** guidance; Chrome/Edge desktop uses browser **Install app** / install-icon guidance; macOS Safari uses **File → Add to Dock**.
-7. **Unknown installed state** — retain conservative same-origin install-receipt behavior rather than inventing new installed-state authority.
+5. **Chromium native prompt available on Desktop** — the event is browser-owned evidence that this PWA can be installed. Clear stale Desktop receipt/installed UI state, show **Install HRFH web app**, and let that button invoke the captured native prompt.
+6. **Chromium native prompt available on Android** — preserve positive Android installed evidence to prevent duplicate promotion; otherwise show **Install HRFH web app**.
+7. **Native prompt unavailable** — hide the custom Install button rather than expose a dead action. Android uses browser-menu **Install app** guidance; Chrome/Edge desktop uses browser **Install app** / install-icon guidance; macOS Safari uses **File → Add to Dock**.
+8. **Unknown installed state** — retain conservative same-origin install-receipt behavior unless a stronger browser-owned signal supersedes it.
 
-`beforeinstallprompt` is Chromium-specific and browser-controlled. The site cannot manufacture a native prompt. Technical PWA rejection also prevents that event, which is why installability must be tested independently of controller code.
+`beforeinstallprompt` is Chromium-specific and browser-controlled. The site cannot manufacture a native prompt. Technical PWA rejection also prevents that event, which is why installability is tested independently of controller code.
 
 ## Chromium installability contract
 
@@ -48,6 +51,8 @@ Every candidate head runs a headless-Chromium smoke test that:
 
 The regression checkpoint produced `no-acceptable-icon`. The restored historical launcher binaries pass this same browser-level check. Static PNG dimensions alone are not sufficient evidence because the rejected binaries also declared nominally valid dimensions in the manifest.
 
+The browser suite also contains a Desktop lifecycle regression. After the controller settles, the test seeds a stale local install receipt, delivers a fresh installability event, and verifies that the receipt is cleared and **Install HRFH web app** becomes available. This guards the post-uninstall recovery path separately from technical PWA eligibility.
+
 ## Android PWA installation and duplicate prevention
 
 The manifest declares itself in `related_applications`. On supported Android Chrome, `navigator.getInstalledRelatedApps()` can report the installed self-related PWA.
@@ -56,8 +61,8 @@ The manifest declares itself in `related_applications`. On supported Android Chr
 - Supported Android probe completes successfully with no matching self-PWA: not installed; clear stale local receipt.
 - API unavailable or probe errors: unknown; the same-origin boolean receipt may remain conservative fallback evidence.
 - Accepted native browser install, `appinstalled`, standalone launch, and positive related-app detection may write the receipt.
-- A `beforeinstallprompt` event is captured. If the page already has installed evidence (`installedStateDetected` or the receipt), the custom Install button remains hidden to avoid duplicate promotion.
-- If installed evidence is absent, the captured event makes **Install HRFH web app** available.
+- A `beforeinstallprompt` event is captured. If Android already has installed evidence (`installedStateDetected` or the receipt), the custom Install button remains hidden to avoid duplicate promotion.
+- If Android installed evidence is absent, the captured event makes **Install HRFH web app** available.
 - If the user dismisses or consumes the one-shot native prompt, the captured event is cleared and the custom Install button is hidden rather than left visible without an actionable native prompt.
 
 ## Android installed experience
@@ -71,6 +76,22 @@ The Android installed UI is intentionally simple:
 - confirmation card: **The myHRFH icon was added to your Home Screen.**
 
 There is no Android Restore control and no Uninstall control. The installer is not an Android package or launcher manager.
+
+## Desktop uninstall recovery
+
+The same-origin receipt is written after accepted install, `appinstalled`, or an installed launch. Browser uninstall does not automatically delete website localStorage, so the receipt can survive after the actual Desktop PWA has been removed.
+
+For Chromium Desktop, a new `beforeinstallprompt` supersedes that stale receipt because the browser is again offering the current PWA for installation. The handler therefore:
+
+- captures the native prompt;
+- clears the stale local install receipt on non-Android environments;
+- resets the in-memory installed flag;
+- restores normal Desktop copy;
+- shows **Install HRFH web app** backed by the captured native prompt.
+
+This is intentionally scoped away from Android. Android keeps its existing installed-evidence guard and related-app detection behavior.
+
+Current Desktop installed-related-app support varies by browser/runtime. `navigator.getInstalledRelatedApps()` may provide additional positive evidence where supported, but the Desktop uninstall recovery does not depend on that API being available; the browser-owned install prompt is the cross-version recovery signal covered by CI.
 
 ## iPhone and iPad guidance
 
@@ -88,11 +109,12 @@ Guidance remains safe-area aware, responsive to orientation/viewport changes, ke
 
 ## Desktop behavior
 
-Windows Chrome/Edge and other supported Chromium desktop browsers use the same installability prerequisites and native-prompt lifecycle as Android:
+Windows Chrome/Edge and other supported Chromium desktop browsers use the same technical installability prerequisites and native-prompt lifecycle, with the Desktop-specific stale-receipt recovery described above:
 
 - Chromium must first accept the PWA technically;
 - installed-state assessment occurs before duplicate promotion;
 - the controller waits up to 1.2 seconds for `beforeinstallprompt`;
+- a fresh Desktop native prompt invalidates stale local installed receipt state;
 - the custom **Install HRFH web app** action appears only if that event has actually been captured;
 - without a captured event, the custom button is hidden and browser-native **Install app** / install-icon guidance is shown;
 - after the one-shot native prompt is consumed or dismissed, the custom button is hidden rather than becoming a nonfunctional action.
@@ -106,14 +128,14 @@ macOS Safari retains **File → Add to Dock** guidance. There is no Restore shor
 | Android Chrome/Chromium | browser installability → installed-state probe → wait up to 1.2s for native prompt → custom Install only when prompt exists; otherwise browser-menu **Install app** | Open + Reinstall |
 | iPhone/iPad Chrome | Share → Add to Home Screen | Approved iOS guidance |
 | iPhone/iPad Safari | Share or More → Share → Add to Home Screen → Open as Web App → Add | Approved iOS guidance |
-| Windows Chrome/Edge | browser installability → native prompt when captured; otherwise browser Install app/install-icon guidance | Open |
-| macOS Chrome/Edge/Safari | Chromium native prompt when captured or Safari Add to Dock | Open |
+| Windows Chrome/Edge | browser installability → fresh native prompt clears stale Desktop receipt after uninstall → Install action backed by native prompt | Open while installed; Install after removal |
+| macOS Chrome/Edge/Safari | Chromium native prompt when captured or Safari Add to Dock | Open; Chromium prompt may recover removed PWA |
 
 ## Service worker contract
 
-The worker uses cache `myhrfh-installer-v11` and build revision `pre-marketing-install-behavior-v1`, while preserving `android-pwa-recovery-v2`, `android-installed-ui-v1`, `desktop-install-recovery-v1`, and `ios-final-guidance-v2` markers.
+The worker uses cache `myhrfh-installer-v12` and build revision `pre-marketing-install-behavior-v1`, while preserving `android-pwa-recovery-v2`, `android-installed-ui-v1`, `desktop-install-recovery-v1`, and `ios-final-guidance-v2` markers.
 
-Cache v11 deliberately replaces v10 because physical devices may have cached the rejected launcher binaries and manifest. The worker uses `skipWaiting()` and `clients.claim()`, and activation removes obsolete cache identities so the accepted launcher asset set can replace the rejected shell.
+Cache v12 deliberately replaces v11 because physical Desktop clients may have cached the prior `install.js` that retained stale installed receipt state after browser uninstall. The worker uses `skipWaiting()` and `clients.claim()`, and activation removes obsolete cache identities so the Desktop uninstall-recognition handler is staged while the accepted launcher assets and approved iOS runtime remain intact.
 
 Service-worker registration retains the established `window.load` timing. The worker caches only browser shell assets, intercepts same-origin GET requests only, uses network-first navigation freshness, and does not proxy `myhrfh.com`.
 
@@ -137,8 +159,9 @@ Review service-worker scope before production so unrelated authenticated portal 
 - Service-worker failure leaves the online installer usable and reports initialization failure.
 - Installed-state probe errors remain unknown.
 - Supported Android successful empty self-related-app result clears stale receipt and returns to installation assessment.
+- A fresh Desktop `beforeinstallprompt` clears stale local installed receipt state and restores the Install action.
 - If Chromium does not deliver `beforeinstallprompt` during the 1.2-second assessment window, no dead custom Install button is shown; browser-native installation guidance is shown instead.
-- A later `beforeinstallprompt` can surface the custom button when the installed-evidence guard allows it.
+- A later `beforeinstallprompt` can surface the custom button according to the platform-specific installed-evidence rules.
 - User cancellation consumes the current native prompt event and hides the custom Install button.
 - Missing Home Screen icon cannot be detected by the website; the Android UI does not claim otherwise.
 
@@ -153,7 +176,7 @@ node --check service-worker.js
 node --test tests/*.mjs
 ```
 
-The Node test suite includes the real-Chromium installability gate described above. Validation CI must not build or upload a Marketing handoff ZIP. **Packaging is a separate post-device-acceptance action.**
+The Node test suite includes the real-Chromium installability gate and the Desktop stale-receipt recovery regression described above. Validation CI must not build or upload a Marketing handoff ZIP. **Packaging is a separate post-device-acceptance action.**
 
 ## Production deployment checklist
 
@@ -162,13 +185,14 @@ The Node test suite includes the real-Chromium installability gate described abo
 3. Android Chrome, app not installed: confirm **Install HRFH web app** appears and opens Chrome's native PWA install UI once Chrome delivers the native prompt.
 4. Android Chrome, native prompt dismissed: confirm the custom Install button is no longer left visible without a live prompt.
 5. Android Chrome, installed: Open + Reinstall only; refresh does not advertise duplicate installation when installed evidence is available; complete PWA removal can return the browser to installation assessment.
-6. Desktop Chrome/Edge: confirm a technically installable, not-installed page receives the native prompt and the custom Install action invokes it.
-7. Desktop Safari: confirm **File → Add to Dock** guidance.
-8. Reconfirm iPhone/iPad behavior without modification: Chrome portrait/landscape and iPad Chrome; iPhone/iPad Safari direct Share and circled More variants; Open-as-Web-App/Edit-Actions recovery.
-9. Verify safe areas, zoom/reflow, keyboard/screen-reader labels, reduced motion, and concise copy.
-10. Run the complete exact-head automated gate after the final code-changing commit.
-11. Only after steps 1–10 pass, create the Marketing package with self-PWA identity `https://hrfh.hrforhealth.com/web-install/` and inspect the produced ZIP before handoff.
-12. Marketing host serves installer/manifest/service-worker/icons/launch assets from the deliberately scoped same-origin `/web-install/` path, applies required headers, and preserves normal HRFH authentication authority.
+6. Desktop Chrome/Edge, not installed: confirm a technically installable page receives the native prompt and the custom Install action invokes it.
+7. Desktop Chrome/Edge uninstall cycle: install the PWA, return to staging and confirm installed state, uninstall the PWA from the browser/OS, revisit or refresh staging, and confirm the page leaves **previously installed** state and presents **Install HRFH web app** again.
+8. Desktop Safari: confirm **File → Add to Dock** guidance.
+9. Reconfirm iPhone/iPad behavior without modification: Chrome portrait/landscape and iPad Chrome; iPhone/iPad Safari direct Share and circled More variants; Open-as-Web-App/Edit-Actions recovery.
+10. Verify safe areas, zoom/reflow, keyboard/screen-reader labels, reduced motion, and concise copy.
+11. Run the complete exact-head automated gate after the final code-changing commit.
+12. Only after steps 1–11 pass, create the Marketing package with self-PWA identity `https://hrfh.hrforhealth.com/web-install/` and inspect the produced ZIP before handoff.
+13. Marketing host serves installer/manifest/service-worker/icons/launch assets from the deliberately scoped same-origin `/web-install/` path, applies required headers, and preserves normal HRFH authentication authority.
 
 ## Marketing packaging boundary
 
@@ -181,4 +205,4 @@ Packaging must be generated from the exact physically accepted PR head and must 
 
 ## Release decision
 
-Code completion requires browser syntax, static tests, and the real-Chromium installability gate green on the same exact PR head. Broad production release additionally requires physical Android/Desktop acceptance plus production-origin/security-header verification. GitHub Pages remains staging. iOS behavior in this correction is intentionally unchanged.
+Code completion requires browser syntax, static tests, real-Chromium installability, and Desktop stale-receipt recovery green on the same exact PR head. Broad production release additionally requires physical Android/Desktop acceptance plus production-origin/security-header verification. GitHub Pages remains staging. iOS behavior in this correction is intentionally unchanged.
