@@ -19,12 +19,16 @@ test('approved HRFH logo URL is used for visible installer branding', async () =
   assert.match(html, new RegExp(`<img[^>]+class=["']brand-icon["'][^>]+src=["']${escaped}["']`, 'i'));
 });
 
-test('desktop stale receipt cannot suppress a newly available native install prompt', async () => {
+test('stale receipt cannot suppress a newly available native install prompt on Android or desktop', async () => {
   const js = await read('install.js');
   const initialState = js.match(/async function renderInitialState\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
   const promptHandler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
 
   assert.match(initialState, /installationState === ['"]unknown['"][\s\S]*isAndroid\(\)[\s\S]*readInstallReceipt\(\)/i);
   assert.doesNotMatch(initialState, /installationState === ['"]unknown['"]\s*&&\s*readInstallReceipt\(\)/i);
-  assert.match(promptHandler, /installedStateDetected\s*\|\|\s*\(isAndroid\(\)\s*&&\s*readInstallReceipt\(\)\)/i);
+  assert.match(promptHandler, /deferredInstallPrompt\s*=\s*event/i);
+  assert.match(promptHandler, /clearInstallReceipt\(\)/i);
+  assert.match(promptHandler, /renderInstallReady\(\)/i);
+  assert.doesNotMatch(promptHandler, /readInstallReceipt\(\)/i);
+  assert.doesNotMatch(promptHandler, /if\s*\([^)]*installedStateDetected/i);
 });
