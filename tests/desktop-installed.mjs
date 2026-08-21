@@ -44,7 +44,7 @@ test('empty related-app result is definitive only on Android while desktop remai
 
 test('service worker refreshes the app shell for restored pre-Marketing behavior', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v10['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v11['"]/);
   assert.match(worker, /const BUILD_REVISION = ['"]pre-marketing-install-behavior-v1['"]/);
   assert.match(worker, /const HRFH_ICON_REVISION = ['"]hrfh-transparent-icon-v1['"]/);
 });
