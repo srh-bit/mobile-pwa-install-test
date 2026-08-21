@@ -18,7 +18,7 @@ test('Android refresh uses receipt only when the browser probe is unknown', asyn
   const js = await read('install.js');
   const initialState = js.match(/async function renderInitialState\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
   assert.match(initialState, /installationState === ['"]installed['"]/);
-  assert.match(initialState, /installationState === ['"]unknown['"][\s\S]*readInstallReceipt\(\)/);
+  assert.match(initialState, /installationState === ['"]unknown['"][\s\S]*isAndroid\(\)[\s\S]*readInstallReceipt\(\)/);
   assert.match(initialState, /installationState === ['"]not-installed['"][\s\S]*clearInstallReceipt\(\)/);
 });
 
@@ -26,7 +26,8 @@ test('beforeinstallprompt does not erase positive installed evidence on its own'
   const js = await read('install.js');
   const handler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
   assert.doesNotMatch(handler, /clearInstallReceipt\(\)/);
-  assert.match(handler, /readInstallReceipt\(\)|installedStateDetected/);
+  assert.match(handler, /installedStateDetected/);
+  assert.match(handler, /isAndroid\(\)\s*&&\s*readInstallReceipt\(\)/);
   assert.match(handler, /deferredInstallPrompt\s*=\s*event/);
 });
 
@@ -39,20 +40,16 @@ test('accepted Android install writes the receipt immediately', async () => {
 test('confirmed Android PWA shows Open and Reinstall without restore or uninstall actions', async () => {
   const html = await read('index.html');
   const js = await read('install.js');
-  const availability = js.match(/function getInstalledManagementAvailability\([^)]*\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
-  assert.doesNotMatch(html, /id=["']uninstall-button["']/i);
-  assert.match(availability, /isAndroid\(\)[^\n]*restore:\s*false/i);
-  const installedState = js.match(/function setInstalledState\([^)]*\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
-  assert.doesNotMatch(installedState, /Restore Home Screen shortcut/i);
-  assert.match(installedState, /Reinstall/i);
+  assert.doesNotMatch(html, /restore-shortcut-button|uninstall-button/i);
+  assert.doesNotMatch(js, /getInstalledManagementAvailability|showShortcutHelp|Restore Home Screen shortcut/i);
+  assert.match(js, /reinstallButton\.hidden\s*=\s*!\(confirmed\s*&&\s*isAndroid\(\)\)/i);
+  assert.match(js, /openButton\.textContent\s*=\s*['"]Open HRFH web app['"]/i);
 });
 
 test('Android installed confirmation is concise', async () => {
   const js = await read('install.js');
-  const installedState = js.match(/function setInstalledState\([^)]*\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
-  const androidBranch = installedState.match(/if\s*\(isAndroid\(\)\)\s*\{([\s\S]*?)\}\s*else if/)?.[1] ?? '';
-  assert.match(androidBranch, /The myHRFH icon was added to your Home Screen\./i);
-  assert.doesNotMatch(androidBranch, /cannot inspect|launcher icon|restore quick access/i);
+  assert.match(js, /if\s*\(isAndroid\(\)\)\s*\{[\s\S]*The myHRFH icon was added to your Home Screen\./i);
+  assert.doesNotMatch(js, /cannot inspect|launcher icon|restore quick access/i);
 });
 
 test('Android fallback remains browser install rather than an unverifiable bookmark', async () => {
