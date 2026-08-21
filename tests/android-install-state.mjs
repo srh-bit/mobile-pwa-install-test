@@ -22,13 +22,15 @@ test('Android refresh uses receipt only when the browser probe is unknown', asyn
   assert.match(initialState, /installationState === ['"]not-installed['"][\s\S]*clearInstallReceipt\(\)/);
 });
 
-test('beforeinstallprompt does not erase positive installed evidence on its own', async () => {
+test('beforeinstallprompt supersedes stale Android fallback evidence', async () => {
   const js = await read('install.js');
   const handler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
-  assert.doesNotMatch(handler, /clearInstallReceipt\(\)/);
-  assert.match(handler, /installedStateDetected/);
-  assert.match(handler, /isAndroid\(\)\s*&&\s*readInstallReceipt\(\)/);
   assert.match(handler, /deferredInstallPrompt\s*=\s*event/);
+  assert.match(handler, /installedStateDetected\s*=\s*false/);
+  assert.match(handler, /clearInstallReceipt\(\)/);
+  assert.match(handler, /renderInstallReady\(\)/);
+  assert.doesNotMatch(handler, /readInstallReceipt\(\)/);
+  assert.doesNotMatch(handler, /if\s*\([^)]*installedStateDetected/i);
 });
 
 test('accepted Android install writes the receipt immediately', async () => {
@@ -56,6 +58,7 @@ test('Android fallback remains browser install rather than an unverifiable bookm
   const js = await read('install.js');
   const fallback = js.match(/function renderAndroidFallback\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
   assert.match(fallback, /Install app/i);
+  assert.match(fallback, /installButton\.hidden\s*=\s*false/i);
   assert.doesNotMatch(fallback, /Add to Home screen/i);
 });
 
