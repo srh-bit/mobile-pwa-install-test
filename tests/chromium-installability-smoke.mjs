@@ -6,6 +6,8 @@ import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve } from 'node:path';
 
 const REPO_ROOT = resolve(new URL('..', import.meta.url).pathname);
+const STARTUP_ATTEMPTS = 3;
+const STARTUP_POLL_COUNT = 100;
 
 const MIME = new Map([
   ['.html', 'text/html; charset=utf-8'],
@@ -60,7 +62,7 @@ async function startStaticServer() {
 
 async function waitForDevToolsPort(getStderr) {
   const pattern = /DevTools listening on ws:\/\/127\.0\.0\.1:(\d+)\//;
-  for (let attempt = 0; attempt < 200; attempt += 1) {
+  for (let attempt = 0; attempt < STARTUP_POLL_COUNT; attempt += 1) {
     const stderr = getStderr();
     const match = stderr.match(pattern);
     if (match) return Number(match[1]);
@@ -71,7 +73,7 @@ async function waitForDevToolsPort(getStderr) {
 
 async function waitForTarget(port, expectedOrigin, getStderr) {
   const endpoint = `http://127.0.0.1:${port}/json/list`;
-  for (let attempt = 0; attempt < 200; attempt += 1) {
+  for (let attempt = 0; attempt < STARTUP_POLL_COUNT; attempt += 1) {
     try {
       const response = await fetch(endpoint);
       if (response.ok) {
@@ -85,6 +87,44 @@ async function waitForTarget(port, expectedOrigin, getStderr) {
     await sleep(100);
   }
   throw new Error(`Timed out waiting for Chrome DevTools target at ${expectedOrigin}. Chrome stderr: ${getStderr()}`);
+}
+
+function stopChrome(chrome) {
+  if (chrome && !chrome.killed) chrome.kill('SIGKILL');
+}
+
+async function launchChromeWithDevTools(origin) {
+  const failures = [];
+
+  for (let attempt = 1; attempt <= STARTUP_ATTEMPTS; attempt += 1) {
+    const chrome = spawn(chromeBinary(), [
+      '--headless=new',
+      '--no-sandbox',
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      '--remote-debugging-port=0',
+      `--user-data-dir=/tmp/hrfh-pwa-installability-${process.pid}-${Date.now()}-${attempt}`,
+      `${origin}/`
+    ], {
+      stdio: ['ignore', 'ignore', 'pipe'],
+      env: { ...process.env, DBUS_SESSION_BUS_ADDRESS: '' }
+    });
+
+    let chromeStderr = '';
+    chrome.stderr.on('data', (chunk) => { chromeStderr += chunk.toString(); });
+
+    try {
+      const port = await waitForDevToolsPort(() => chromeStderr);
+      const webSocketUrl = await waitForTarget(port, origin, () => chromeStderr);
+      return { chrome, chromeStderr: () => chromeStderr, webSocketUrl };
+    } catch (error) {
+      failures.push(`attempt ${attempt}: ${error instanceof Error ? error.message : String(error)}`);
+      stopChrome(chrome);
+      await sleep(250);
+    }
+  }
+
+  throw new Error(`Chrome failed to expose DevTools after ${STARTUP_ATTEMPTS} bounded attempts. ${failures.join(' | ')}`);
 }
 
 async function connectCdp(webSocketUrl) {
@@ -122,28 +162,14 @@ async function connectCdp(webSocketUrl) {
   };
 }
 
-test('Chromium reports the staging shell as technically installable', { timeout: 45000 }, async (t) => {
+test('Chromium reports the staging shell as technically installable', { timeout: 60000 }, async (t) => {
   const { server, origin } = await startStaticServer();
   t.after(() => new Promise((resolvePromise) => server.close(resolvePromise)));
 
-  const chrome = spawn(chromeBinary(), [
-    '--headless=new',
-    '--no-sandbox',
-    '--disable-gpu',
-    '--disable-dev-shm-usage',
-    '--remote-debugging-port=0',
-    `--user-data-dir=/tmp/hrfh-pwa-installability-${process.pid}-${Date.now()}`,
-    `${origin}/`
-  ], { stdio: ['ignore', 'ignore', 'pipe'] });
-  let chromeStderr = '';
-  chrome.stderr.on('data', (chunk) => { chromeStderr += chunk.toString(); });
-  t.after(() => {
-    if (!chrome.killed) chrome.kill('SIGKILL');
-  });
+  const launched = await launchChromeWithDevTools(origin);
+  t.after(() => stopChrome(launched.chrome));
 
-  const cdpPort = await waitForDevToolsPort(() => chromeStderr);
-  const webSocketUrl = await waitForTarget(cdpPort, origin, () => chromeStderr);
-  const cdp = await connectCdp(webSocketUrl);
+  const cdp = await connectCdp(launched.webSocketUrl);
   t.after(() => cdp.close());
 
   await cdp.send('Page.enable');
@@ -169,6 +195,6 @@ test('Chromium reports the staging shell as technically installable', { timeout:
   assert.deepEqual(
     errors,
     [],
-    `Chromium installability errors: ${JSON.stringify(errors)}\nChrome stderr: ${chromeStderr}`
+    `Chromium installability errors: ${JSON.stringify(errors)}\nChrome stderr: ${launched.chromeStderr()}`
   );
 });
