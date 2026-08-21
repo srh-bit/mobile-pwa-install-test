@@ -32,7 +32,7 @@ jobs:
           while IFS= read -r path; do
             [ -z "$path" ] && continue
             case "$path" in
-              .github/workflows/package-marketing.yml|MARKETING-README.md) ;;
+              .github/workflows/package-marketing.yml|MARKETING-README.md|MARKETING-README.txt) ;;
               *)
                 echo "Unexpected change outside release packaging/documentation boundary: $path" >&2
                 exit 1
@@ -40,7 +40,7 @@ jobs:
             esac
           done <<< "$changed"
           echo "Accepted source SHA: $expected"
-          echo 'Release branch changes only packaging workflow and Marketing README.'
+          echo 'Release branch changes only packaging workflow and Marketing handoff documentation.'
 
       - name: Use Node.js
         uses: actions/setup-node@v5
@@ -88,7 +88,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          test -s MARKETING-README.md
+          test -s MARKETING-README.txt
+          test ! -e MARKETING-README.md
 
           expected_files='web-install/index.html
           web-install/launch.html
@@ -156,6 +157,6 @@ jobs:
           path: |
             hrfh-web-install-marketing.zip
             SHA256SUMS.txt
-            MARKETING-README.md
+            MARKETING-README.txt
           if-no-files-found: error
           retention-days: 14
