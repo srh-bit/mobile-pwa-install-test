@@ -37,6 +37,8 @@ There is no Restore or Uninstall control on Android. If a user later removes onl
 
 ## Duplicate-install prevention
 
-Positive installed evidence is checked before the page exposes another install action. `beforeinstallprompt` by itself never deletes positive evidence. On Android Chrome where the self-related-app probe succeeds, an empty result is allowed to clear a stale receipt so a genuinely removed PWA can be installed again.
+Positive installed evidence is checked before the page exposes another install action. On Android, `beforeinstallprompt` by itself never deletes positive installed evidence or the receipt. On Android Chrome where the self-related-app probe succeeds, an empty result is allowed to clear a stale receipt so a genuinely removed PWA can be installed again.
 
-Cache identity `myhrfh-installer-v11` deliberately replaces the v10 shell so devices that cached the rejected launcher assets receive the accepted binaries and manifest.
+Desktop Chromium intentionally differs: a new browser-owned `beforeinstallprompt` can invalidate a stale Desktop receipt after uninstall. That Desktop recovery path does not weaken the Android duplicate-install guard.
+
+Cache identity `myhrfh-installer-v12` replaces v11 so clients receive the Desktop uninstall-recognition controller. The accepted Android launcher binaries, related-app probe, Open + Reinstall installed UI, and no-Restore/no-Uninstall boundaries remain unchanged.
