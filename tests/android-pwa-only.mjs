@@ -45,16 +45,17 @@ test('supported Android related-app probe treats an empty self-PWA result as not
   assert.match(probe, /isAndroid\(\)[\s\S]*clearInstallReceipt\(\)[\s\S]*return ['"]not-installed['"]/);
 });
 
-test('Android receipt is only fallback evidence when the browser cannot complete the related-app probe', async () => {
+test('pre-Marketing receipt remains conservative fallback when the browser cannot complete the installed-state probe', async () => {
   const js = await read('install.js');
   const initial = js.match(/async function renderInitialState\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
   assert.match(initial, /installationState === ['"]not-installed['"]/);
-  assert.match(initial, /installationState === ['"]unknown['"][\s\S]*isAndroid\(\)[\s\S]*readInstallReceipt\(\)/);
+  assert.match(initial, /installationState === ['"]unknown['"]\s*&&\s*readInstallReceipt\(\)/);
 });
 
 test('PWA-only release rotates cache and removes native bridge shell asset', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v9['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v10['"]/);
+  assert.match(worker, /BUILD_REVISION\s*=\s*['"]pre-marketing-install-behavior-v1['"]/);
   assert.match(worker, /ANDROID_INSTALL_REVISION\s*=\s*['"]android-pwa-recovery-v2['"]/);
   assert.match(worker, /HRFH_ICON_REVISION\s*=\s*['"]hrfh-transparent-icon-v1['"]/);
   assert.doesNotMatch(worker, /ANDROID_NATIVE_MANAGEMENT_REVISION|android-native-bridge\.js/);
