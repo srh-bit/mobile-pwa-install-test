@@ -1,5 +1,4 @@
 const MYHRFH_URL = 'https://myhrfh.com';
-const INSTALL_PROMPT_WAIT_MS = 1200;
 const INSTALL_RECEIPT_KEY = 'myhrfh-install-receipt-v1';
 
 const installButton = document.getElementById('install-button');
@@ -139,12 +138,6 @@ async function getInstallationState() {
   }
 }
 
-async function waitForInstallPrompt() {
-  if (deferredInstallPrompt) return true;
-  await new Promise((resolve) => window.setTimeout(resolve, INSTALL_PROMPT_WAIT_MS));
-  return Boolean(deferredInstallPrompt);
-}
-
 function setStatus(message = '') {
   statusMessage.textContent = message;
 }
@@ -223,20 +216,22 @@ function setInstalledState(message = 'HRFH web app is installed.', { confirmed =
 
 function renderAndroidFallback() {
   resetInstalledActions();
-  installButton.hidden = true;
-  platformContent.innerHTML = '<p><strong>Install the HRFH web app.</strong><br>Open your browser menu and choose <strong>Install app</strong>.</p>';
+  installButton.hidden = false;
+  installButton.textContent = 'Install HRFH web app';
+  platformContent.innerHTML = '<p><strong>Install the HRFH web app.</strong><br>Tap Install. If Chrome does not open the install prompt yet, open the browser menu and choose <strong>Install app</strong>.</p>';
   setStatus();
 }
 
 function renderDesktopFallback() {
   resetInstalledActions();
-  installButton.hidden = true;
+  installButton.hidden = false;
+  installButton.textContent = 'Install HRFH web app';
   if (isDesktopSafari()) {
-    platformContent.innerHTML = '<p><strong>Add the HRFH web app to your Mac.</strong><br>In Safari, choose <strong>File → Add to Dock</strong>, then click Add.</p>';
+    platformContent.innerHTML = '<p><strong>Add the HRFH web app to your Mac.</strong><br>Click Install for the steps, or in Safari choose <strong>File → Add to Dock</strong>, then click Add.</p>';
     setStatus();
     return;
   }
-  platformContent.innerHTML = '<p><strong>Install the HRFH web app from your browser menu.</strong><br>Look for <strong>Install app</strong> or the install icon to add it to this computer.</p>';
+  platformContent.innerHTML = '<p><strong>Install the HRFH web app.</strong><br>Click Install. If the native prompt is not available yet, use your browser menu and choose <strong>Install app</strong> or the install icon.</p>';
   setStatus();
 }
 
@@ -260,6 +255,15 @@ function renderInstallReady() {
     ? '<p><strong>Ready to install.</strong><br>Install the HRFH web app for quick access from your home screen.</p>'
     : '<p><strong>Ready to install.</strong><br>Install the HRFH web app for quick access from this computer.</p>';
   setStatus();
+}
+
+async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    await navigator.serviceWorker.register('./service-worker.js');
+  } catch {
+    setStatus('Install support could not be initialized. Refresh and try again.');
+  }
 }
 
 async function renderInitialState() {
@@ -299,7 +303,7 @@ async function renderInitialState() {
     clearInstallReceipt();
   }
 
-  if (deferredInstallPrompt || await waitForInstallPrompt()) {
+  if (deferredInstallPrompt) {
     renderInstallReady();
     return;
   }
@@ -310,10 +314,8 @@ async function renderInitialState() {
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
   deferredInstallPrompt = event;
-  if (installedStateDetected || (isAndroid() && readInstallReceipt())) {
-    installButton.hidden = true;
-    return;
-  }
+  installedStateDetected = false;
+  clearInstallReceipt();
   applyEnvironmentCopy();
   renderInstallReady();
 });
@@ -325,6 +327,7 @@ installButton.addEventListener('click', async () => {
   }
   if (!deferredInstallPrompt) {
     renderFallback();
+    setStatus('Use your browser installation option if the native prompt is not available yet.');
     return;
   }
 
@@ -338,12 +341,12 @@ installButton.addEventListener('click', async () => {
       setInstalledState('HRFH web app is installed.', { confirmed: true });
       setStatus('Installed successfully.');
     } else {
-      setStatus('Installation cancelled.');
+      renderFallback();
+      setStatus('Installation cancelled. You can try again.');
     }
   } finally {
     deferredInstallPrompt = null;
     installButton.disabled = false;
-    installButton.hidden = true;
   }
 });
 
@@ -376,12 +379,12 @@ window.addEventListener('appinstalled', () => {
   setStatus('Installed successfully.');
 });
 
-window.addEventListener('load', () => {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./service-worker.js').catch(() => {
-      setStatus('Install support could not be initialized. Refresh and try again.');
-    });
-  }
-});
+if (!isIOS()) {
+  void registerServiceWorker();
+} else {
+  window.addEventListener('load', () => {
+    void registerServiceWorker();
+  });
+}
 
 void renderInitialState();
