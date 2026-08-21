@@ -30,12 +30,12 @@ test('Android no longer exposes an uninstall action', async () => {
 });
 
 test('confirmed Android PWA keeps installed UI to Open and Reinstall without Restore', async () => {
+  const html = await read('index.html');
   const js = await read('install.js');
-  const availability = js.match(/function getInstalledManagementAvailability\([^)]*\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
-  const installedState = js.match(/function setInstalledState\([^)]*\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
-  assert.match(availability, /isAndroid\(\)[^\n]*restore:\s*false/i);
-  assert.doesNotMatch(installedState, /Restore Home Screen shortcut/i);
-  assert.match(installedState, /Reinstall/i);
+  assert.doesNotMatch(html, /restore-shortcut-button|management-dialog/i);
+  assert.doesNotMatch(js, /getInstalledManagementAvailability|showShortcutHelp|Restore Home Screen shortcut/i);
+  assert.match(js, /openButton\.textContent\s*=\s*['"]Open HRFH web app['"]/i);
+  assert.match(js, /reinstallButton\.hidden\s*=\s*!\(confirmed\s*&&\s*isAndroid\(\)\)/i);
 });
 
 test('supported Android related-app probe treats an empty self-PWA result as not installed', async () => {
@@ -49,7 +49,7 @@ test('Android receipt is only fallback evidence when the browser cannot complete
   const js = await read('install.js');
   const initial = js.match(/async function renderInitialState\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
   assert.match(initial, /installationState === ['"]not-installed['"]/);
-  assert.match(initial, /installationState === ['"]unknown['"][\s\S]*readInstallReceipt\(\)/);
+  assert.match(initial, /installationState === ['"]unknown['"][\s\S]*isAndroid\(\)[\s\S]*readInstallReceipt\(\)/);
 });
 
 test('PWA-only release rotates cache and removes native bridge shell asset', async () => {
