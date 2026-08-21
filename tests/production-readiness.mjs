@@ -70,7 +70,7 @@ test('public installer includes privacy and indexing safeguards without iOS cali
 
 test('service worker uses production navigation freshness and the restored pre-Marketing release identity', async () => {
   const worker = await read('service-worker.js');
-  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v11['"]/);
+  assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v12['"]/);
   assert.match(worker, /pre-marketing-install-behavior-v1/i);
   assert.match(worker, /hrfh-transparent-icon-v1/i);
   assert.match(worker, /android-pwa-recovery-v2/i);
