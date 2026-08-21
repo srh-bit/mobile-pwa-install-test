@@ -63,9 +63,10 @@ test('public installer includes privacy and indexing safeguards without iOS cali
   assert.doesNotMatch(guidanceJs, /sessionStorage|localStorage/i);
 });
 
-test('service worker uses production navigation freshness and v9 transparent-icon PWA-only release identity', async () => {
+test('service worker uses production navigation freshness and the non-iOS install-affordance release identity', async () => {
   const worker = await read('service-worker.js');
   assert.match(worker, /const CACHE_NAME = ['"]myhrfh-installer-v9['"]/);
+  assert.match(worker, /android-desktop-install-affordance-v1/i);
   assert.match(worker, /hrfh-transparent-icon-v1/i);
   assert.match(worker, /android-pwa-recovery-v2/i);
   assert.match(worker, /ios-final-guidance-v2/i);
@@ -74,16 +75,20 @@ test('service worker uses production navigation freshness and v9 transparent-ico
   assert.match(worker, /url\.origin\s*!==\s*self\.location\.origin/);
 });
 
-test('production readiness and security guidance document browser-only boundaries', async () => {
+test('production readiness and security guidance document browser-only boundaries and release packaging separation', async () => {
   const readiness = await read('docs/PRODUCTION-READINESS.md');
   const security = await read('SECURITY.md');
+  const workflow = await read('.github/workflows/validate.yml');
   assert.match(readiness, /myhrfh\.com/i);
   assert.match(readiness, /getInstalledRelatedApps/i);
+  assert.match(readiness, /beforeinstallprompt/i);
   assert.match(readiness, /cannot[^\n]*(?:inspect|detect|verify)[^\n]*(?:Home Screen|launcher)/i);
   assert.doesNotMatch(readiness, /Android[^\n]*Restore Home Screen shortcut/i);
   assert.doesNotMatch(readiness, /Managed Android TWA|ShortcutManager|ACTION_DELETE/i);
   assert.match(readiness, /Content-Security-Policy/i);
   assert.match(readiness, /Strict-Transport-Security/i);
+  assert.match(readiness, /Packaging is a separate post-device-acceptance action/i);
+  assert.doesNotMatch(workflow, /actions\/upload-artifact|hrfh-web-install-marketing\.zip/i);
   assert.match(security, /No credentials/i);
   assert.match(security, /No analytics/i);
 });
