@@ -19,15 +19,17 @@ test('approved HRFH logo URL is used for visible installer branding', async () =
   assert.match(html, new RegExp(`<img[^>]+class=["']brand-icon["'][^>]+src=["']${escaped}["']`, 'i'));
 });
 
-test('pre-Marketing installed receipt can suppress a duplicate custom install prompt while Restore remains absent', async () => {
+test('Android installed receipt can suppress duplicate install while desktop browser installability clears stale state', async () => {
   const js = await read('install.js');
   const initialState = js.match(/async function renderInitialState\(\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
   const promptHandler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
+  const androidGuard = promptHandler.match(/if\s*\(isAndroid\(\)\s*&&\s*\(installedStateDetected\s*\|\|\s*readInstallReceipt\(\)\)\)\s*\{([\s\S]*?)\n\s*\}/i)?.[1] ?? '';
 
   assert.match(initialState, /installationState === ['"]unknown['"]\s*&&\s*readInstallReceipt\(\)/i);
   assert.match(promptHandler, /deferredInstallPrompt\s*=\s*event/i);
-  assert.match(promptHandler, /installedStateDetected\s*\|\|\s*readInstallReceipt\(\)/i);
-  assert.match(promptHandler, /installButton\.hidden\s*=\s*true/i);
+  assert.match(androidGuard, /installButton\.hidden\s*=\s*true/i);
+  assert.match(androidGuard, /return/i);
+  assert.doesNotMatch(androidGuard, /clearInstallReceipt\(\)/i);
+  assert.match(promptHandler, /if\s*\(!isAndroid\(\)\)[\s\S]*clearInstallReceipt\(\)/i);
   assert.match(promptHandler, /renderInstallReady\(\)/i);
-  assert.doesNotMatch(promptHandler, /clearInstallReceipt\(\)/i);
 });
