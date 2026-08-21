@@ -24,14 +24,16 @@ test('desktop fallback keeps browser-native guidance and hides the custom Instal
   assert.doesNotMatch(fallback, /installButton\.textContent/i);
 });
 
-test('beforeinstallprompt follows the pre-Marketing installed-evidence guard', async () => {
+test('beforeinstallprompt preserves Android installed evidence and lets desktop recover from stale receipt state', async () => {
   const js = await read('install.js');
   const handler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
+  const androidGuard = handler.match(/if\s*\(isAndroid\(\)\s*&&\s*\(installedStateDetected\s*\|\|\s*readInstallReceipt\(\)\)\)\s*\{([\s\S]*?)\n\s*\}/i)?.[1] ?? '';
   assert.match(handler, /deferredInstallPrompt\s*=\s*event/i);
-  assert.match(handler, /installedStateDetected\s*\|\|\s*readInstallReceipt\(\)/i);
-  assert.match(handler, /installButton\.hidden\s*=\s*true/i);
+  assert.match(androidGuard, /installButton\.hidden\s*=\s*true/i);
+  assert.match(androidGuard, /return/i);
+  assert.doesNotMatch(androidGuard, /clearInstallReceipt\(\)/i);
+  assert.match(handler, /if\s*\(!isAndroid\(\)\)[\s\S]*clearInstallReceipt\(\)[\s\S]*installedStateDetected\s*=\s*false/i);
   assert.match(handler, /renderInstallReady\(\)/i);
-  assert.doesNotMatch(handler, /clearInstallReceipt\(\)/i);
 });
 
 test('consumed or cancelled native prompt does not leave a dead custom Install button', async () => {
@@ -51,7 +53,7 @@ test('service worker registration retains the pre-Marketing window-load timing',
   assert.doesNotMatch(js, /async function registerServiceWorker\(\)/i);
 });
 
-test('approved iOS install flow remains unchanged by Android and desktop revert', async () => {
+test('approved iOS install flow remains unchanged by Android and desktop recovery work', async () => {
   const js = await read('install.js');
   const ios = body(js, 'function renderIOSInstructions\\(\\)');
   assert.match(ios, /installButton\.textContent\s*=\s*['"]Show install steps['"]/i);
