@@ -171,6 +171,24 @@ async function waitForManifest(cdp) {
   return cdp.send('Page.getAppManifest');
 }
 
+async function waitForControllerSettled(cdp) {
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const state = await cdp.send('Runtime.evaluate', {
+      expression: `(() => {
+        const platform = document.getElementById('platform-content');
+        return {
+          ready: document.readyState === 'complete' && Boolean(platform) && !/Checking this device/i.test(platform.textContent || ''),
+          text: platform?.textContent || ''
+        };
+      })()`,
+      returnByValue: true
+    });
+    if (state.result?.value?.ready) return state.result.value;
+    await sleep(100);
+  }
+  throw new Error('Timed out waiting for installer controller to settle before desktop uninstall regression step.');
+}
+
 test('Chromium reports the staging shell as technically installable', { timeout: 60000 }, async (t) => {
   const { server, origin } = await startStaticServer();
   t.after(() => new Promise((resolvePromise) => server.close(resolvePromise)));
@@ -220,6 +238,8 @@ test('desktop installability signal invalidates a stale local install receipt', 
 
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
+  await waitForControllerSettled(cdp);
+
   await cdp.send('Runtime.evaluate', {
     expression: `localStorage.setItem('myhrfh-install-receipt-v1', 'installed')`
   });
