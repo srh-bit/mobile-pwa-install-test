@@ -28,8 +28,11 @@ test('beforeinstallprompt is treated as current browser installability evidence 
   const js = await read('install.js');
   const handler = js.match(/window\.addEventListener\(['"]beforeinstallprompt['"],\s*\(event\)\s*=>\s*\{([\s\S]*?)\n\}\);/)?.[1] ?? '';
   assert.match(handler, /deferredInstallPrompt\s*=\s*event/i);
+  assert.match(handler, /installedStateDetected\s*=\s*false/i);
+  assert.match(handler, /clearInstallReceipt\(\)/i);
   assert.match(handler, /renderInstallReady\(\)/i);
-  assert.doesNotMatch(handler, /readInstallReceipt\(\)|installedStateDetected/i);
+  assert.doesNotMatch(handler, /if\s*\([^)]*(?:readInstallReceipt|installedStateDetected)/i);
+  assert.doesNotMatch(handler, /readInstallReceipt\(\)/i);
 });
 
 test('cancelled or currently unavailable programmable prompt does not permanently hide the Install action', async () => {
